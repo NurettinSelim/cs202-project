@@ -7,8 +7,7 @@ CREATE TABLE hotels (
     hotel_id INT PRIMARY KEY AUTO_INCREMENT,
     hotel_name VARCHAR(100) NOT NULL,
     address TEXT NOT NULL,
-    phone VARCHAR(20) NOT NULL,
-    email VARCHAR(100) NOT NULL UNIQUE
+    phone VARCHAR(20) NOT NULL
 );
 
 -- User types enum
@@ -17,16 +16,14 @@ CREATE TABLE user_types (
     type_name VARCHAR(20) NOT NULL UNIQUE
 );
 
--- Users table
+-- Users table (removed hire_date)
 CREATE TABLE users (
     user_id INT PRIMARY KEY AUTO_INCREMENT,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
-    email VARCHAR(100) NOT NULL UNIQUE,
     phone VARCHAR(20),
     type_id INT NOT NULL,
     hotel_id INT,
-    hire_date DATE,
     salary DECIMAL(10,2),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (type_id) REFERENCES user_types(type_id),
@@ -56,8 +53,7 @@ CREATE TABLE floors (
     floor_id INT PRIMARY KEY AUTO_INCREMENT,
     hotel_id INT NOT NULL,
     floor_number INT NOT NULL,
-    wing VARCHAR(50),
-    UNIQUE(hotel_id, floor_number, wing),
+    UNIQUE(hotel_id, floor_number),
     FOREIGN KEY (hotel_id) REFERENCES hotels(hotel_id)
 );
 
