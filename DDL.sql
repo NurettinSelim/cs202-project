@@ -4,7 +4,7 @@ USE hotel_management;
 
 -- Hotels table
 CREATE TABLE hotels (
-    hotel_id INT PRIMARY KEY AUTO_INCREMENT,
+    hotel_id INT PRIMARY KEY,
     hotel_name VARCHAR(100) NOT NULL,
     address TEXT NOT NULL,
     phone VARCHAR(20) NOT NULL
@@ -16,9 +16,9 @@ CREATE TABLE user_types (
     type_name VARCHAR(20) NOT NULL UNIQUE
 );
 
--- Users table (removed hire_date)
+-- Users table
 CREATE TABLE users (
-    user_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT PRIMARY KEY,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     phone VARCHAR(20),
@@ -32,7 +32,7 @@ CREATE TABLE users (
 
 -- Room type categories (base room types)
 CREATE TABLE room_type_categories (
-    category_id INT PRIMARY KEY AUTO_INCREMENT,
+    category_id INT PRIMARY KEY,
     name VARCHAR(50) NOT NULL,
     capacity INT NOT NULL,
     description TEXT
@@ -40,7 +40,7 @@ CREATE TABLE room_type_categories (
 
 -- Hotel-specific room types
 CREATE TABLE hotel_room_types (
-    type_id INT PRIMARY KEY AUTO_INCREMENT,
+    type_id INT PRIMARY KEY,
     hotel_id INT NOT NULL,
     category_id INT NOT NULL,
     FOREIGN KEY (hotel_id) REFERENCES hotels(hotel_id),
@@ -50,7 +50,7 @@ CREATE TABLE hotel_room_types (
 
 -- Floor information table
 CREATE TABLE floors (
-    floor_id INT PRIMARY KEY AUTO_INCREMENT,
+    floor_id INT PRIMARY KEY,
     hotel_id INT NOT NULL,
     floor_number INT NOT NULL,
     UNIQUE(hotel_id, floor_number),
@@ -59,7 +59,7 @@ CREATE TABLE floors (
 
 -- Room base prices table
 CREATE TABLE room_type_prices (
-    price_id INT PRIMARY KEY AUTO_INCREMENT,
+    price_id INT PRIMARY KEY,
     type_id INT NOT NULL,
     base_price DECIMAL(10,2) NOT NULL,
     effective_from TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -67,9 +67,9 @@ CREATE TABLE room_type_prices (
     FOREIGN KEY (type_id) REFERENCES hotel_room_types(type_id)
 );
 
--- Rooms table (removed redundant hotel_id)
+-- Rooms table
 CREATE TABLE rooms (
-    room_id INT PRIMARY KEY AUTO_INCREMENT,
+    room_id INT PRIMARY KEY,
     room_number VARCHAR(10) NOT NULL,
     type_id INT NOT NULL,
     floor_id INT NOT NULL,
@@ -85,9 +85,9 @@ CREATE TABLE booking_statuses (
     status_name VARCHAR(20) NOT NULL UNIQUE
 );
 
--- Bookings table (removed redundant hotel_id)
+-- Bookings table
 CREATE TABLE bookings (
-    booking_id INT PRIMARY KEY AUTO_INCREMENT,
+    booking_id INT PRIMARY KEY,
     guest_id INT NOT NULL,
     room_id INT NOT NULL,
     check_in_date DATE NOT NULL,
@@ -104,7 +104,7 @@ CREATE TABLE bookings (
 
 -- Payments table
 CREATE TABLE payments (
-    payment_id INT PRIMARY KEY AUTO_INCREMENT,
+    payment_id INT PRIMARY KEY,
     booking_id INT NOT NULL,
     amount DECIMAL(10,2) NOT NULL,
     payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -114,9 +114,9 @@ CREATE TABLE payments (
     FOREIGN KEY (processed_by) REFERENCES users(user_id)
 );
 
--- Housekeeping schedule table (removed redundant hotel_id)
+-- Housekeeping schedule table
 CREATE TABLE housekeeping_schedule (
-    schedule_id INT PRIMARY KEY AUTO_INCREMENT,
+    schedule_id INT PRIMARY KEY,
     room_id INT NOT NULL,
     staff_id INT NOT NULL,
     scheduled_date DATE NOT NULL,
@@ -130,7 +130,7 @@ CREATE TABLE housekeeping_schedule (
 
 -- Revenue reports table
 CREATE TABLE revenue_reports (
-    report_id INT PRIMARY KEY AUTO_INCREMENT,
+    report_id INT PRIMARY KEY,
     hotel_id INT NOT NULL,
     report_date DATE NOT NULL,
     total_revenue DECIMAL(10,2) NOT NULL,
