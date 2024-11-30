@@ -129,7 +129,6 @@ CREATE TABLE housekeeping_schedule (
     staff_id INT NOT NULL,
     scheduled_date DATE NOT NULL CHECK (scheduled_date >= CURRENT_DATE),
     status ENUM('PENDING', 'COMPLETED', 'CANCELLED') DEFAULT 'PENDING',
-    notes TEXT,
     created_by INT NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (room_id) REFERENCES rooms(room_id),

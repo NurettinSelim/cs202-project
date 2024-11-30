@@ -78,21 +78,78 @@ INSERT INTO booking_statuses (status_id, status_name) VALUES
 
 -- Insert sample bookings
 INSERT INTO bookings (booking_id, guest_id, room_id, check_in_date, check_out_date, status_id, number_of_guests, confirmed_by) VALUES
-(1, 7, 1, '2024-01-10', '2024-01-15', 2, 1, 3),
-(2, 8, 5, '2024-01-12', '2024-01-14', 2, 2, 4);
+(1, 7, 1, '2024-12-10', '2024-12-15', 2, 1, 3),
+(2, 8, 5, '2024-12-12', '2024-12-14', 2, 2, 4);
 
 -- Insert sample payments
 INSERT INTO payments (payment_id, booking_id, amount, payment_method, processed_by) VALUES
-(1, 1, 500.00, 'CREDIT_CARD', 3),
-(2, 2, 360.00, 'CREDIT_CARD', 4);
+(1, 1, 500.00, 'CARD', 3),
+(2, 2, 360.00, 'CARD', 4);
 
 -- Insert sample housekeeping schedules
 INSERT INTO housekeeping_schedule (schedule_id, room_id, staff_id, scheduled_date, status, created_by) VALUES
-(1, 1, 5, '2024-01-15', 'PENDING', 3),
-(2, 5, 6, '2024-01-14', 'PENDING', 4);
+(1, 1, 5, '2024-12-15', 'PENDING', 3),
+(2, 5, 6, '2024-12-14', 'PENDING', 4);
 
 -- Insert sample revenue reports
 INSERT INTO revenue_reports (report_id, hotel_id, report_date, total_revenue, generated_by) VALUES
-(1, 1, '2024-01-15', 500.00, 1),
-(2, 2, '2024-01-15', 360.00, 2);
+(1, 1, '2024-12-15', 500.00, 1),
+(2, 2, '2024-12-15', 360.00, 2);
+
+-- Essential SELECT Queries --
+
+-- Get available rooms for a date range
+SELECT r.room_id, h.hotel_name, r.room_number, rtc.name as room_type, 
+       rtc.capacity, rtp.base_price
+FROM rooms r
+JOIN hotel_room_types hrt ON r.type_id = hrt.type_id
+JOIN hotels h ON hrt.hotel_id = h.hotel_id
+JOIN room_type_categories rtc ON hrt.category_id = rtc.category_id
+JOIN room_type_prices rtp ON hrt.type_id = rtp.type_id
+WHERE r.status = 'AVAILABLE'
+AND NOT EXISTS (
+    SELECT 1 FROM bookings b
+    WHERE b.room_id = r.room_id
+    AND b.status_id IN (SELECT status_id FROM booking_statuses WHERE status_name IN ('CONFIRMED', 'CHECKED_IN'))
+    AND (b.check_in_date <= :check_out_date AND b.check_out_date >= :check_in_date)
+);
+
+-- Get bookings for a guest
+SELECT b.booking_id, h.hotel_name, r.room_number, rtc.name as room_type,
+       b.check_in_date, b.check_out_date, bs.status_name,
+       SUM(p.amount) as total_paid
+FROM bookings b
+JOIN rooms r ON b.room_id = r.room_id
+JOIN hotel_room_types hrt ON r.type_id = hrt.type_id
+JOIN hotels h ON hrt.hotel_id = h.hotel_id
+JOIN room_type_categories rtc ON hrt.category_id = rtc.category_id
+JOIN booking_statuses bs ON b.status_id = bs.status_id
+LEFT JOIN payments p ON b.booking_id = p.booking_id
+WHERE b.guest_id = :user_id
+GROUP BY b.booking_id, h.hotel_name, r.room_number, rtc.name, 
+         b.check_in_date, b.check_out_date, bs.status_name;
+
+-- Get housekeeping tasks for a staff member
+SELECT hs.schedule_id, h.hotel_name, r.room_number, 
+       hs.scheduled_date, hs.status
+FROM housekeeping_schedule hs
+JOIN rooms r ON hs.room_id = r.room_id
+JOIN hotel_room_types hrt ON r.type_id = hrt.type_id
+JOIN hotels h ON hrt.hotel_id = h.hotel_id
+WHERE hs.staff_id = :staff_id
+AND hs.scheduled_date >= CURRENT_DATE
+ORDER BY hs.scheduled_date;
+
+-- Get hotel revenue report
+SELECT h.hotel_name,
+       COUNT(DISTINCT b.booking_id) as total_bookings,
+       SUM(p.amount) as total_revenue,
+       AVG(p.amount) as average_booking_value
+FROM hotels h
+JOIN hotel_room_types hrt ON h.hotel_id = hrt.hotel_id
+JOIN rooms r ON hrt.type_id = r.type_id
+JOIN bookings b ON r.room_id = b.room_id
+JOIN payments p ON b.booking_id = p.booking_id
+WHERE b.check_in_date BETWEEN :start_date AND :end_date
+GROUP BY h.hotel_id, h.hotel_name;
   
