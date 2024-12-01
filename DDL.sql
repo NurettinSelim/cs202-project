@@ -57,20 +57,13 @@ CREATE TABLE floors (
     FOREIGN KEY (hotel_id) REFERENCES hotels(hotel_id)
 );
 
--- Room base prices table
-CREATE TABLE room_type_prices (
-    price_id INT PRIMARY KEY,
-    type_id INT NOT NULL,
-    base_price DECIMAL(10,2) NOT NULL CHECK (base_price > 0),
-    FOREIGN KEY (type_id) REFERENCES hotel_room_types(type_id)
-);
-
 -- Rooms table
 CREATE TABLE rooms (
     room_id INT PRIMARY KEY,
     room_number VARCHAR(10) NOT NULL,
     type_id INT NOT NULL,
     floor_id INT NOT NULL,
+    price DECIMAL(10,2) NOT NULL CHECK (price > 0),
     status ENUM('AVAILABLE', 'OCCUPIED', 'MAINTENANCE', 'CLEANING') DEFAULT 'AVAILABLE',
     UNIQUE(floor_id, room_number),
     FOREIGN KEY (type_id) REFERENCES hotel_room_types(type_id),
