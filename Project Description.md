@@ -136,7 +136,6 @@ In this project, you should create a new schema/database in your MySQL server an
   - Housekeeping can only view room availability but nothing about guest information.
   - Housekeeping is scheduled by Receptionists and kept as a schedule.
   - Housekeeping cleans the rooms after the bookings and keeps track of cleaned rooms.
-  - **Secret Check:** Only book clean rooms.
 
 
 ---
