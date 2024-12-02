@@ -10,12 +10,6 @@ CREATE TABLE hotels (
     phone VARCHAR(20) NOT NULL CHECK (phone REGEXP '^[0-9+][0-9-+]{9,19}$')
 );
 
--- User types enum
-CREATE TABLE user_types (
-    type_id INT PRIMARY KEY,
-    type_name VARCHAR(20) NOT NULL UNIQUE
-);
-
 -- Base Users table (parent)
 CREATE TABLE users (
     user_id INT PRIMARY KEY,
