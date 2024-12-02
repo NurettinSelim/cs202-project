@@ -10,7 +10,7 @@ CREATE TABLE hotels (
     phone VARCHAR(20) NOT NULL CHECK (phone REGEXP '^[0-9+][0-9-+]{9,19}$')
 );
 
--- Base Users table (parent)
+-- Users table
 CREATE TABLE users (
     user_id INT PRIMARY KEY,
     first_name VARCHAR(50) NOT NULL,
@@ -19,7 +19,7 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Staff table (child - for employees)
+-- Staff table (for employees)
 CREATE TABLE staff (
     user_id INT PRIMARY KEY,
     hotel_id INT NOT NULL,
@@ -45,7 +45,7 @@ CREATE TABLE receptionist_staff (
     FOREIGN KEY (user_id) REFERENCES staff(user_id)
 );
 
--- Guests table (child - for hotel guests)
+-- Guests table
 CREATE TABLE guests (
     user_id INT PRIMARY KEY,
     FOREIGN KEY (user_id) REFERENCES users(user_id)
@@ -63,19 +63,26 @@ CREATE TABLE room_types (
     UNIQUE (hotel_id, type_name)
 );
 
+-- Room statuses table
+CREATE TABLE room_statuses (
+    status_id INT PRIMARY KEY,
+    status_name VARCHAR(20) NOT NULL UNIQUE
+);
+
 -- Rooms table
 CREATE TABLE rooms (
     room_id INT PRIMARY KEY,
     room_number VARCHAR(10) NOT NULL,
     hotel_id INT NOT NULL,
     type_id INT NOT NULL,
-    status ENUM('AVAILABLE', 'OCCUPIED', 'MAINTENANCE', 'CLEANING') DEFAULT 'AVAILABLE',
+    status_id INT NOT NULL DEFAULT 1,
     UNIQUE(hotel_id, room_number),
     FOREIGN KEY (hotel_id) REFERENCES hotels(hotel_id),
-    FOREIGN KEY (type_id) REFERENCES room_types(type_id)
+    FOREIGN KEY (type_id) REFERENCES room_types(type_id),
+    FOREIGN KEY (status_id) REFERENCES room_statuses(status_id)
 );
 
--- Booking status enum
+-- Booking statuses table
 CREATE TABLE booking_statuses (
     status_id INT PRIMARY KEY,
     status_name VARCHAR(20) NOT NULL UNIQUE
@@ -95,13 +102,15 @@ CREATE TABLE bookings (
     FOREIGN KEY (status_id) REFERENCES booking_statuses(status_id),
     FOREIGN KEY (confirmed_by) REFERENCES users(user_id),
     CONSTRAINT check_total_guests CHECK (
-        (SELECT SUM(guests_in_room)
-         FROM booking_rooms
-         WHERE booking_rooms.booking_id = bookings.booking_id) = bookings.total_guests
+        total_guests = (
+            SELECT SUM(guests_in_room)
+            FROM booking_rooms
+            WHERE booking_rooms.booking_id = bookings.booking_id
+        )
     )
 );
 
--- Booking rooms table (allows multiple rooms per booking)
+-- Booking rooms table
 CREATE TABLE booking_rooms (
     booking_id INT,
     room_id INT,
@@ -126,10 +135,9 @@ CREATE TABLE payments (
     booking_id INT NOT NULL,
     amount DECIMAL(10,2) NOT NULL CHECK (amount > 0),
     payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    payment_method ENUM('CASH', 'CARD') NOT NULL,
     processed_by INT NOT NULL,
     FOREIGN KEY (booking_id) REFERENCES bookings(booking_id),
-    FOREIGN KEY (processed_by) REFERENCES users(user_id)
+    FOREIGN KEY (processed_by) REFERENCES receptionist_staff(user_id)
 );
 
 -- Housekeeping schedule table
@@ -138,30 +146,11 @@ CREATE TABLE housekeeping_schedule (
     room_id INT NOT NULL,
     staff_id INT NOT NULL,
     scheduled_date DATE NOT NULL CHECK (scheduled_date >= CURRENT_DATE),
-    status ENUM('PENDING', 'COMPLETED', 'CANCELLED') DEFAULT 'PENDING',
+    status_id INT NOT NULL,
     created_by INT NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (room_id) REFERENCES rooms(room_id),
-    FOREIGN KEY (staff_id) REFERENCES users(user_id),
+    FOREIGN KEY (staff_id) REFERENCES housekeeping_staff(user_id),
     FOREIGN KEY (created_by) REFERENCES users(user_id),
-    -- Check to ensure staff is housekeeping type
-    CONSTRAINT check_staff_type CHECK (
-        staff_id IN (
-            SELECT user_id 
-            FROM users 
-            WHERE type_id = (SELECT type_id FROM user_types WHERE type_name = 'HOUSEKEEPING')
-        )
-    )
-);
-
--- Revenue reports table
-CREATE TABLE revenue_reports (
-    report_id INT PRIMARY KEY,
-    hotel_id INT NOT NULL,
-    report_date DATE NOT NULL,
-    total_revenue DECIMAL(10,2) NOT NULL CHECK (total_revenue >= 0),
-    generated_by INT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (hotel_id) REFERENCES hotels(hotel_id),
-    FOREIGN KEY (generated_by) REFERENCES users(user_id)
+    FOREIGN KEY (status_id) REFERENCES room_statuses(status_id)
 );
