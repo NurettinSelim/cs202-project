@@ -71,12 +71,11 @@ CREATE TABLE room_statuses (
 
 -- Rooms table
 CREATE TABLE rooms (
-    room_id INT PRIMARY KEY,
-    room_number VARCHAR(10) NOT NULL,
-    hotel_id INT NOT NULL,
+    hotel_id INT,
+    room_number VARCHAR(10),
     type_id INT NOT NULL,
     status_id INT NOT NULL DEFAULT 1,
-    UNIQUE(hotel_id, room_number),
+    PRIMARY KEY (hotel_id, room_number),
     FOREIGN KEY (hotel_id) REFERENCES hotels(hotel_id),
     FOREIGN KEY (type_id) REFERENCES room_types(type_id),
     FOREIGN KEY (status_id) REFERENCES room_statuses(status_id)
@@ -113,29 +112,32 @@ CREATE TABLE bookings (
 -- Booking rooms table
 CREATE TABLE booking_rooms (
     booking_id INT,
-    room_id INT,
+    hotel_id INT,
+    room_number VARCHAR(10),
     guests_in_room INT NOT NULL CHECK (guests_in_room > 0),
-    PRIMARY KEY (booking_id, room_id),
+    PRIMARY KEY (booking_id, hotel_id, room_number),
     FOREIGN KEY (booking_id) REFERENCES bookings(booking_id),
-    FOREIGN KEY (room_id) REFERENCES rooms(room_id),
+    FOREIGN KEY (hotel_id, room_number) REFERENCES rooms(hotel_id, room_number),
     CONSTRAINT check_room_capacity CHECK (
         guests_in_room <= (
             SELECT rt.capacity 
             FROM rooms r
             JOIN room_types rt ON r.type_id = rt.type_id
-            WHERE r.room_id = booking_rooms.room_id
+            WHERE r.hotel_id = booking_rooms.hotel_id 
+            AND r.room_number = booking_rooms.room_number
         )
     ),
-    CONSTRAINT check_room_availability UNIQUE (room_id, booking_id)
+    CONSTRAINT check_room_availability UNIQUE (hotel_id, room_number, booking_id)
 );
 
 -- Payments table
 CREATE TABLE payments (
-    payment_id INT PRIMARY KEY,
-    booking_id INT NOT NULL,
+    booking_id INT,
+    payment_number INT,
     amount DECIMAL(10,2) NOT NULL CHECK (amount > 0),
     payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     processed_by INT NOT NULL,
+    PRIMARY KEY (booking_id, payment_number),
     FOREIGN KEY (booking_id) REFERENCES bookings(booking_id),
     FOREIGN KEY (processed_by) REFERENCES receptionist_staff(user_id)
 );
@@ -143,13 +145,14 @@ CREATE TABLE payments (
 -- Housekeeping schedule table
 CREATE TABLE housekeeping_schedule (
     schedule_id INT PRIMARY KEY,
-    room_id INT NOT NULL,
+    hotel_id INT,
+    room_number VARCHAR(10),
     staff_id INT NOT NULL,
     scheduled_date DATE NOT NULL CHECK (scheduled_date >= CURRENT_DATE),
     status_id INT NOT NULL,
     created_by INT NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (room_id) REFERENCES rooms(room_id),
+    FOREIGN KEY (hotel_id, room_number) REFERENCES rooms(hotel_id, room_number),
     FOREIGN KEY (staff_id) REFERENCES housekeeping_staff(user_id),
     FOREIGN KEY (created_by) REFERENCES users(user_id),
     FOREIGN KEY (status_id) REFERENCES room_statuses(status_id)
