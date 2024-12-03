@@ -240,3 +240,42 @@ LEFT JOIN administrator_staff a ON u.user_id = a.user_id
 LEFT JOIN receptionist_staff r ON u.user_id = r.user_id
 LEFT JOIN housekeeping_staff h ON u.user_id = h.user_id
 ORDER BY h.hotel_name, role;
+
+-- Add revenue report query
+SELECT 
+    h.hotel_name,
+    DATE_FORMAT(b.check_out_date, '%Y-%m') as month,
+    COUNT(DISTINCT b.booking_id) as total_bookings,
+    SUM(p.amount) as total_revenue
+FROM hotels h
+JOIN rooms r ON h.hotel_id = r.hotel_id
+JOIN booking_rooms br ON r.hotel_id = br.hotel_id 
+    AND r.room_number = br.room_number
+JOIN bookings b ON br.booking_id = b.booking_id
+JOIN payments p ON b.booking_id = p.booking_id
+WHERE b.status_id = 4  -- CHECKED_OUT
+GROUP BY h.hotel_id, month
+ORDER BY h.hotel_name, month DESC;
+
+-- Add booking modification constraints
+ALTER TABLE bookings
+ADD CONSTRAINT valid_booking_modification
+CHECK (
+    CASE 
+        WHEN status_id IN (3, 4) THEN FALSE  -- Cannot modify CHECKED_IN or CHECKED_OUT
+        ELSE TRUE
+    END
+);
+
+-- Add booking modification query
+UPDATE bookings 
+SET check_in_date = ?,
+    check_out_date = ?,
+    total_guests = ?,
+    status_id = ?
+WHERE booking_id = ?
+AND status_id IN (1, 2)  -- Only PENDING or CONFIRMED
+AND NOT EXISTS (
+    SELECT 1 FROM payments 
+    WHERE booking_id = bookings.booking_id
+);
