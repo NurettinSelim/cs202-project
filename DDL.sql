@@ -278,4 +278,56 @@ BEGIN
     END IF;
 END//
 
+-- booking cancellation check
+CREATE TRIGGER before_booking_update_cancel_check
+BEFORE UPDATE ON bookings
+FOR EACH ROW
+BEGIN
+    DECLARE has_payments BOOLEAN;
+    
+    -- 5 means cancelled
+    IF NEW.status_id = 5 AND OLD.status_id != 5 THEN
+        SELECT EXISTS (
+            SELECT 1 FROM payments 
+            WHERE booking_id = OLD.booking_id
+        ) INTO has_payments;
+        
+        IF has_payments THEN
+            SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Cannot cancel booking with existing payments';
+        END IF;
+    END IF;
+END//
+
+-- Check for overbooking
+CREATE TRIGGER check_overbooked
+BEFORE INSERT ON booking_rooms
+FOR EACH ROW
+BEGIN
+    DECLARE booking_start DATE;
+    DECLARE booking_end DATE;
+    
+    SELECT check_in_date, check_out_date 
+    INTO booking_start, booking_end
+    FROM bookings 
+    WHERE booking_id = NEW.booking_id;
+    
+    IF EXISTS (
+        SELECT 1
+        FROM booking_rooms br
+        JOIN bookings b ON br.booking_id = b.booking_id
+        WHERE br.hotel_id = NEW.hotel_id 
+        AND br.room_number = NEW.room_number
+        -- 2 and 3 are CONFIRMED and CHECKED_IN
+        AND b.status_id IN (2, 3) 
+        AND NOT (
+            booking_end <= b.check_in_date OR 
+            booking_start >= b.check_out_date  
+        )
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Room is already booked for these dates';
+    END IF;
+END//
+
 DELIMITER ;
