@@ -330,6 +330,7 @@ BEGIN
     END IF;
 END//
 
+-- checkout payment check
 CREATE TRIGGER before_checkout_payment_check
 BEFORE UPDATE ON bookings
 FOR EACH ROW
@@ -337,12 +338,12 @@ BEGIN
     DECLARE total_paid DECIMAL(10,2);
     DECLARE room_total DECIMAL(10,2);
     
-    -- Calculate total amount paid
+    -- total amount paid
     SELECT COALESCE(SUM(amount), 0) INTO total_paid
     FROM payments
     WHERE booking_id = NEW.booking_id;
     
-    -- Calculate total room cost
+    -- total room cost
     SELECT COALESCE(SUM(rt.base_price * DATEDIFF(NEW.check_out_date, NEW.check_in_date)), 0)
     INTO room_total
     FROM booking_rooms br
@@ -350,10 +351,40 @@ BEGIN
     JOIN room_types rt ON r.type_id = rt.type_id
     WHERE br.booking_id = NEW.booking_id;
     
-    -- If trying to check out (status 4) and haven't paid full amount
+    -- if trying to check out and haven't paid full amount
     IF NEW.status_id = 4 AND total_paid < room_total THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Cannot check out: Full payment required';
+    END IF;
+END//
+
+-- Room deletion check trigger
+CREATE TRIGGER before_room_delete
+BEFORE DELETE ON rooms
+FOR EACH ROW
+BEGIN
+    IF EXISTS (
+        SELECT 1 
+        FROM booking_rooms br
+        JOIN bookings b ON br.booking_id = b.booking_id
+        WHERE br.hotel_id = OLD.hotel_id 
+        AND br.room_number = OLD.room_number
+        AND b.status_id IN (2, 3)  -- 2 means confirmed, 3 means checked in
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Cannot delete room with active bookings';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 
+        FROM housekeeping_schedule
+        WHERE hotel_id = OLD.hotel_id 
+        AND room_number = OLD.room_number
+        AND scheduled_date >= CURRENT_DATE
+        AND status_id = 1  -- 1 means pending
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Cannot delete room with pending housekeeping tasks';
     END IF;
 END//
 
