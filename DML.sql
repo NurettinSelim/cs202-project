@@ -1,22 +1,22 @@
 -- Populate hotels
-INSERT INTO hotels (hotel_id, hotel_name, address, phone) VALUES
-(1, 'Kaş Otel', 'Kaş, Antalya', '+905051234567'),
-(2, 'Kuşadası Otel', 'Kuşadası, İzmir', '+905051234568');
+INSERT INTO hotels (hotel_name, address, phone) VALUES
+('Kaş Otel', 'Kaş, Antalya', '+905051234567'),
+('Kuşadası Otel', 'Kuşadası, İzmir', '+905051234568');
 
 -- Populate room_statuses
-INSERT INTO room_statuses (status_id, status_name) VALUES
-(1, 'AVAILABLE'),
-(2, 'OCCUPIED'),
-(3, 'MAINTENANCE'),
-(4, 'CLEANING');
+INSERT INTO room_statuses (status_name) VALUES
+('AVAILABLE'),
+('OCCUPIED'),
+('MAINTENANCE'),
+('CLEANING');
 
 -- Populate room_types
-INSERT INTO room_types (type_id, hotel_id, type_name, base_price, capacity, bed_count) VALUES
-(1, 1, 'Tek Kişilik Oda', 100.00, 1, 1),
-(2, 1, 'Çift Kişilik Oda', 150.00, 2, 1),
-(3, 1, 'Aile Odası', 300.00, 4, 3),
-(4, 2, 'Tek Kişilik Oda', 120.00, 1, 1),
-(5, 2, 'Çift Kişilik Oda', 180.00, 2, 2);
+INSERT INTO room_types (hotel_id, type_name, base_price, capacity, bed_count) VALUES
+(1, 'Tek Kişilik Oda', 100.00, 1, 1),
+(1, 'Çift Kişilik Oda', 150.00, 2, 1),
+(1, 'Aile Odası', 300.00, 4, 3),
+(2, 'Tek Kişilik Oda', 120.00, 1, 1),
+(2, 'Çift Kişilik Oda', 180.00, 2, 2);
 
 -- Populate rooms
 INSERT INTO rooms (hotel_id, room_number, type_id, status_id) VALUES
@@ -26,21 +26,21 @@ INSERT INTO rooms (hotel_id, room_number, type_id, status_id) VALUES
 (2, '101', 4, 1);
 
 -- Populate booking_statuses
-INSERT INTO booking_statuses (status_id, status_name) VALUES
-(1, 'PENDING'),
-(2, 'CONFIRMED'),
-(3, 'CHECKED_IN'),
-(4, 'CHECKED_OUT'),
-(5, 'CANCELLED');
+INSERT INTO booking_statuses (status_name) VALUES
+('PENDING'),
+('CONFIRMED'),
+('CHECKED_IN'),
+('CHECKED_OUT'),
+('CANCELLED');
 
 -- Sample users
-INSERT INTO users (user_id, first_name, last_name, phone, created_at) VALUES
-(1, 'Selim', 'Özyılmaz', '+905051234569', CURRENT_TIMESTAMP),
-(2, 'İpek', 'Debreli', '+905051234570', CURRENT_TIMESTAMP),
-(3, 'Ayşe', 'Yılmaz', '+905051234571', CURRENT_TIMESTAMP),
-(4, 'Mehmet', 'Kaya', '+905051234572', CURRENT_TIMESTAMP),
-(5, 'Zeynep', 'Demir', '+905051234573', CURRENT_TIMESTAMP),
-(6, 'Can', 'Yücel', '+905051234574', CURRENT_TIMESTAMP);
+INSERT INTO users (first_name, last_name, phone, created_at) VALUES
+('Selim', 'Özyılmaz', '+905051234569', CURRENT_TIMESTAMP),
+('İpek', 'Debreli', '+905051234570', CURRENT_TIMESTAMP),
+('Ayşe', 'Yılmaz', '+905051234571', CURRENT_TIMESTAMP),
+('Mehmet', 'Kaya', '+905051234572', CURRENT_TIMESTAMP),
+('Zeynep', 'Demir', '+905051234573', CURRENT_TIMESTAMP),
+('Can', 'Yücel', '+905051234574', CURRENT_TIMESTAMP);
 
 -- Staff records
 INSERT INTO staff (user_id, hotel_id, salary, hire_date) VALUES
@@ -136,9 +136,9 @@ ORDER BY r.room_number;
 -- Guest Menu
 -- Add New Booking
 INSERT INTO bookings (
-    booking_id, guest_id, check_in_date, 
+    guest_id, check_in_date, 
     check_out_date, status_id, total_guests
-) VALUES (?, ?, ?, ?, ?, ?);
+) VALUES (?, ?, ?, ?, ?);
 INSERT INTO booking_rooms (
     booking_id, hotel_id, room_number, guests_in_room
 ) VALUES (?, ?, ?, ?);
@@ -191,7 +191,7 @@ DELETE FROM rooms WHERE hotel_id = ? AND room_number = ?;
 UPDATE rooms SET status_id = ? WHERE hotel_id = ? AND room_number = ?;
 
 -- Add User
-INSERT INTO users (user_id, first_name, last_name, phone, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP);
+INSERT INTO users (first_name, last_name, phone, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP);
 
 -- View User Accounts
 SELECT * FROM users;
@@ -247,9 +247,9 @@ JOIN housekeeping_staff h ON u.user_id = h.user_id;
 -- Receptionist Menu
 -- Add New Booking
 INSERT INTO bookings (
-    booking_id, guest_id, check_in_date, 
+    guest_id, check_in_date, 
     check_out_date, status_id, total_guests
-) VALUES (?, ?, ?, ?, ?, ?);
+) VALUES (?, ?, ?, ?, ?);
 INSERT INTO booking_rooms (
     booking_id, hotel_id, room_number, guests_in_room
 ) VALUES (?, ?, ?, ?);

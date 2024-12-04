@@ -4,7 +4,7 @@ USE hotel_management;
 
 -- hotels table
 CREATE TABLE hotels (
-    hotel_id INT PRIMARY KEY,
+    hotel_id INT AUTO_INCREMENT PRIMARY KEY,
     hotel_name VARCHAR(100) NOT NULL,
     address TEXT NOT NULL,
     phone VARCHAR(20) NOT NULL CHECK (phone REGEXP '^[0-9+][0-9-+]{9,19}$')
@@ -12,7 +12,7 @@ CREATE TABLE hotels (
 
 -- users table
 CREATE TABLE users (
-    user_id INT PRIMARY KEY,
+    user_id INT AUTO_INCREMENT PRIMARY KEY,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     phone VARCHAR(20) CHECK (phone IS NULL OR phone REGEXP '^[0-9+][0-9-+]{9,19}$'),
@@ -55,7 +55,7 @@ CREATE TABLE guests (
 
 -- room types table
 CREATE TABLE room_types (
-    type_id INT PRIMARY KEY,
+    type_id INT AUTO_INCREMENT PRIMARY KEY,
     hotel_id INT NOT NULL,
     type_name VARCHAR(50) NOT NULL,
     base_price DECIMAL(10,2) NOT NULL CHECK (base_price > 0),
@@ -67,7 +67,7 @@ CREATE TABLE room_types (
 
 -- room statuses table
 CREATE TABLE room_statuses (
-    status_id INT PRIMARY KEY,
+    status_id INT AUTO_INCREMENT PRIMARY KEY,
     status_name VARCHAR(20) NOT NULL UNIQUE
 );
 
@@ -85,13 +85,13 @@ CREATE TABLE rooms (
 
 -- booking statuses table
 CREATE TABLE booking_statuses (
-    status_id INT PRIMARY KEY,
+    status_id INT AUTO_INCREMENT PRIMARY KEY,
     status_name VARCHAR(20) NOT NULL UNIQUE
 );
 
     -- bookings table
 CREATE TABLE bookings (
-    booking_id INT PRIMARY KEY,
+    booking_id INT AUTO_INCREMENT PRIMARY KEY,
     guest_id INT NOT NULL,
     check_in_date DATE NOT NULL,
     check_out_date DATE NOT NULL,
