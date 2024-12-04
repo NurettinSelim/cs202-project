@@ -130,14 +130,14 @@ CREATE TABLE payments (
 
 -- housekeeping schedule table
 CREATE TABLE housekeeping_schedule (
-    schedule_id INT PRIMARY KEY,
     hotel_id INT,
     room_number VARCHAR(10),
+    scheduled_date DATE,
     staff_id INT NOT NULL,
-    scheduled_date DATE NOT NULL,
     status_id INT NOT NULL,
     created_by INT NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (hotel_id, room_number, scheduled_date),
     FOREIGN KEY (hotel_id, room_number) REFERENCES rooms(hotel_id, room_number),
     FOREIGN KEY (staff_id) REFERENCES housekeeping_staff(user_id),
     FOREIGN KEY (created_by) REFERENCES users(user_id),
