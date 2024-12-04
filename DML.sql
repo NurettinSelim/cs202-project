@@ -228,16 +228,21 @@ GROUP BY rt.type_id
 ORDER BY booking_count DESC;
 
 -- View All the Employees with Their Role
-SELECT u.*, 
-    CASE 
-        WHEN a.user_id IS NOT NULL THEN 'ADMINISTRATOR'
-        WHEN r.user_id IS NOT NULL THEN 'RECEPTIONIST'
-        WHEN h.user_id IS NOT NULL THEN 'HOUSEKEEPING'
-    END as role
+SELECT u.*, 'ADMINISTRATOR' as role
 FROM users u
-LEFT JOIN administrator_staff a ON u.user_id = a.user_id
-LEFT JOIN receptionist_staff r ON u.user_id = r.user_id
-LEFT JOIN housekeeping_staff h ON u.user_id = h.user_id;
+JOIN administrator_staff a ON u.user_id = a.user_id
+
+UNION
+
+SELECT u.*, 'RECEPTIONIST' as role
+FROM users u
+JOIN receptionist_staff r ON u.user_id = r.user_id
+
+UNION
+
+SELECT u.*, 'HOUSEKEEPING' as role
+FROM users u
+JOIN housekeeping_staff h ON u.user_id = h.user_id;
 
 -- Receptionist Menu
 -- Add New Booking
