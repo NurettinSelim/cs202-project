@@ -132,8 +132,8 @@ CREATE TABLE payments (
 CREATE TABLE housekeeping_schedule (
     hotel_id INT,
     room_number VARCHAR(10),
-    schedule_number INT,
-    scheduled_date DATE,
+    schedule_number INT AUTO_INCREMENT,
+    scheduled_date DATE NOT NULL,
     staff_id INT NOT NULL,
     status_id INT NOT NULL,
     created_by INT NOT NULL,

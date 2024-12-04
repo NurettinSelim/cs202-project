@@ -273,7 +273,14 @@ INSERT INTO payments (booking_id, amount) VALUES (?, ?);
 UPDATE bookings SET status_id = 4 WHERE booking_id = ?;
 
 -- Assign Housekeeping Task
-INSERT INTO housekeeping_schedule (hotel_id, room_number, scheduled_date, status_id) VALUES (?, ?, ?, ?);
+INSERT INTO housekeeping_schedule (
+    hotel_id, 
+    room_number, 
+    scheduled_date, 
+    staff_id, 
+    status_id, 
+    created_by
+) VALUES (?, ?, ?, ?, ?, ?);
 
 -- View All Housekeepers and Their Availability
 SELECT 
