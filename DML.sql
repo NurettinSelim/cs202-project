@@ -127,7 +127,7 @@ FROM rooms r
 JOIN hotels h ON r.hotel_id = h.hotel_id
 JOIN room_types rt ON r.type_id = rt.type_id
 JOIN room_statuses rs ON r.status_id = rs.status_id
-LEFT JOIN housekeeping_schedule hs ON r.hotel_id = hs.hotel_id 
+JOIN housekeeping_schedule hs ON r.hotel_id = hs.hotel_id 
     AND r.room_number = hs.room_number 
     AND hs.scheduled_date = CURRENT_DATE
 WHERE r.hotel_id = ?  -- Filter by specific hotel
