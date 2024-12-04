@@ -248,7 +248,7 @@ AFTER DELETE ON booking_rooms
 FOR EACH ROW
 BEGIN
     DECLARE total INT;
-    SELECT COALESCE(SUM(guests_in_room), 0) INTO total
+    SELECT SUM(guests_in_room) INTO total
     FROM booking_rooms
     WHERE booking_id = OLD.booking_id;
     
