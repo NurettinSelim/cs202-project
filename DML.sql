@@ -14,16 +14,16 @@ INSERT INTO room_statuses (status_id, status_name) VALUES
 INSERT INTO room_types (type_id, hotel_id, type_name, base_price, capacity, bed_count) VALUES
 (1, 1, 'Tek Kişilik Oda', 100.00, 1, 1),
 (2, 1, 'Çift Kişilik Oda', 150.00, 2, 1),
-(3, 1, 'Aile Odası', 300.00, 4, 2),
+(3, 1, 'Aile Odası', 300.00, 4, 3),
 (4, 2, 'Tek Kişilik Oda', 120.00, 1, 1),
-(5, 2, 'Çift Kişilik Oda', 180.00, 2, 1);
+(5, 2, 'Çift Kişilik Oda', 180.00, 2, 2);
 
 -- Populate rooms
-INSERT INTO rooms (room_id, room_number, hotel_id, type_id, status_id) VALUES
-(1, '101', 1, 1, 1),
-(2, '102', 1, 2, 1),
-(3, '201', 1, 3, 1),
-(4, '101', 2, 4, 1);
+INSERT INTO rooms (hotel_id, room_number, type_id, status_id) VALUES
+(1, '101', 1, 1),
+(1, '102', 2, 1),
+(1, '201', 3, 1),
+(2, '101', 4, 1);
 
 -- Populate booking_statuses
 INSERT INTO booking_statuses (status_id, status_name) VALUES
@@ -47,235 +47,256 @@ INSERT INTO staff (user_id, hotel_id, salary, hire_date) VALUES
 (1, 1, 5000, CURRENT_DATE),
 (2, 1, 4000, CURRENT_DATE),
 (3, 1, 3500, CURRENT_DATE),
-(5, 1, 3500, CURRENT_DATE);
+(4, 1, 3500, CURRENT_DATE);
 
 -- Staff type assignments
-INSERT INTO administrator_staff (user_id) VALUES (1,2);
+INSERT INTO administrator_staff (user_id) VALUES (1), (2);
 INSERT INTO receptionist_staff (user_id) VALUES (3);
 INSERT INTO housekeeping_staff (user_id) VALUES (4);
 
 -- Guest records
 INSERT INTO guests (user_id) VALUES (5), (6);
 
--- Essential SELECT Queries
+-- SELECT Queries
 
--- 1. Find available rooms for a specific date range and capacity
-SELECT r.room_id, r.room_number, h.hotel_name, rt.type_name, rt.base_price
-FROM rooms r
-JOIN room_types rt ON r.type_id = rt.type_id
-JOIN hotels h ON r.hotel_id = h.hotel_id
-WHERE r.status_id = 1  -- AVAILABLE
-AND r.room_id NOT IN (
-    SELECT br.room_id 
-    FROM bookings b
-    JOIN booking_rooms br ON b.booking_id = br.booking_id
-    WHERE (check_in_date <= ? AND check_out_date >= ?)
-    AND b.status_id IN (2, 3)  -- CONFIRMED, CHECKED_IN
-)
-AND rt.capacity >= ?;
-
--- 2. Get user details with role
-SELECT u.*, 
-    CASE 
-        WHEN g.user_id IS NOT NULL THEN 'GUEST'
-        WHEN a.user_id IS NOT NULL THEN 'ADMINISTRATOR'
-        WHEN r.user_id IS NOT NULL THEN 'RECEPTIONIST'
-        WHEN h.user_id IS NOT NULL THEN 'HOUSEKEEPING'
-    END as role
-FROM users u
-LEFT JOIN guests g ON u.user_id = g.user_id
-LEFT JOIN administrator_staff a ON u.user_id = a.user_id
-LEFT JOIN receptionist_staff r ON u.user_id = r.user_id
-LEFT JOIN housekeeping_staff h ON u.user_id = h.user_id
-WHERE u.user_id = ?;
-
--- 3. Get booking details with room and guest information
+-- Guests can check in if it is confirmed by a receptionist.
 SELECT b.*, r.room_number, rt.base_price, h.hotel_name,
        CONCAT(u.first_name, ' ', u.last_name) as guest_name,
        bs.status_name,
        br.guests_in_room
 FROM bookings b
 JOIN booking_rooms br ON b.booking_id = br.booking_id
-JOIN rooms r ON br.room_id = r.room_id
+JOIN rooms r ON br.hotel_id = r.hotel_id AND br.room_number = r.room_number
 JOIN room_types rt ON r.type_id = rt.type_id
 JOIN hotels h ON r.hotel_id = h.hotel_id
 JOIN users u ON b.guest_id = u.user_id
 JOIN booking_statuses bs ON b.status_id = bs.status_id
 WHERE b.booking_id = ?;
 
--- 4. Get housekeeping schedule for a specific date
-SELECT hs.*, r.room_number, 
-       CONCAT(u.first_name, ' ', u.last_name) as staff_name
-FROM housekeeping_schedule hs
-JOIN rooms r ON hs.room_id = r.room_id
-JOIN users u ON hs.staff_id = u.user_id
-JOIN housekeeping_staff hs_staff ON u.user_id = hs_staff.user_id
-WHERE hs.scheduled_date = ?
-AND r.hotel_id = ?;
-
--- 5. Get room booking statistics and revenue
-SELECT r.room_number, rt.base_price, COUNT(br.booking_id) as total_bookings,
-       SUM(p.amount) as total_revenue
+-- Receptionists can list the availability of the rooms in the system.
+SELECT r.hotel_id, r.room_number, h.hotel_name, rt.type_name, rt.base_price
 FROM rooms r
 JOIN room_types rt ON r.type_id = rt.type_id
-LEFT JOIN booking_rooms br ON r.room_id = br.room_id
-LEFT JOIN bookings b ON br.booking_id = b.booking_id
-LEFT JOIN payments p ON b.booking_id = p.booking_id
-WHERE b.check_out_date BETWEEN ? AND ?
-GROUP BY r.room_id, r.room_number, rt.base_price;
+JOIN hotels h ON r.hotel_id = h.hotel_id
+WHERE r.status_id = 1  -- AVAILABLE
+AND NOT EXISTS (
+    SELECT 1 
+    FROM bookings b
+    JOIN booking_rooms br ON b.booking_id = br.booking_id
+    WHERE br.hotel_id = r.hotel_id 
+    AND br.room_number = r.room_number
+    AND (b.check_in_date <= ? AND b.check_out_date >= ?)
+    AND b.status_id IN (2, 3)  -- CONFIRMED, CHECKED_IN
+)
+AND rt.capacity >= ?;
 
--- DELETE Queries
+-- Receptionists can list bookings requested by guests
+SELECT 
+    b.booking_id,
+    CONCAT(u.first_name, ' ', u.last_name) as guest_name,
+    u.phone as guest_phone,
+    b.check_in_date,
+    b.check_out_date,
+    b.total_guests,
+    bs.status_name as booking_status,
+    h.hotel_name,
+    GROUP_CONCAT(r.room_number) as booked_rooms
+FROM bookings b
+JOIN users u ON b.guest_id = u.user_id
+JOIN booking_statuses bs ON b.status_id = bs.status_id
+JOIN booking_rooms br ON b.booking_id = br.booking_id
+JOIN rooms r ON br.hotel_id = r.hotel_id AND br.room_number = r.room_number
+JOIN hotels h ON r.hotel_id = h.hotel_id
+GROUP BY b.booking_id
+ORDER BY b.check_in_date DESC;
 
--- 1. Cancel a booking (only if no payment)
-DELETE FROM bookings 
-WHERE booking_id = ? 
-AND NOT EXISTS (SELECT 1 FROM payments WHERE booking_id = bookings.booking_id);
+-- Receptionists can confirm room bookings
+UPDATE bookings 
+SET status_id = 2  -- CONFIRMED
+WHERE booking_id = ?
 
--- 2. Remove a room (only if no active bookings)
-DELETE FROM rooms 
-WHERE room_id = ?
-AND room_id NOT IN (
-    SELECT br.room_id 
-    FROM booking_rooms br
-    JOIN bookings b ON br.booking_id = b.booking_id
-    WHERE b.status_id IN (2, 3)  -- CONFIRMED, CHECKED_IN
-);
+-- Housekeeping can only view room availability but nothing about Guest information.
+SELECT 
+    h.hotel_name,
+    r.room_number,
+    rt.type_name,
+    rs.status_name as room_status,
+    hs.scheduled_date,
+    hs.status_id as cleaning_status
+FROM rooms r
+JOIN hotels h ON r.hotel_id = h.hotel_id
+JOIN room_types rt ON r.type_id = rt.type_id
+JOIN room_statuses rs ON r.status_id = rs.status_id
+LEFT JOIN housekeeping_schedule hs ON r.hotel_id = hs.hotel_id 
+    AND r.room_number = hs.room_number 
+    AND hs.scheduled_date = CURRENT_DATE
+WHERE r.hotel_id = ?  -- Filter by specific hotel
+ORDER BY r.room_number;
 
--- 3. Delete a housekeeping schedule
-DELETE FROM housekeeping_schedule 
-WHERE schedule_id = ? 
-AND status_id = 1;  -- PENDING
-
--- INSERT Queries for Application Use
-
--- 1. Create a new booking
+-- Guest Menu
+-- Add New Booking
 INSERT INTO bookings (
     booking_id, guest_id, check_in_date, 
     check_out_date, status_id, total_guests
 ) VALUES (?, ?, ?, ?, ?, ?);
-
--- 2. Add rooms to a booking
 INSERT INTO booking_rooms (
-    booking_id, room_id, guests_in_room
-) VALUES (?, ?, ?);
-
--- 3. Add a new housekeeping schedule
-INSERT INTO housekeeping_schedule (
-    schedule_id, room_id, staff_id, scheduled_date, 
-    status_id, created_by
-) VALUES (?, ?, ?, ?, ?, ?);
-
--- 4. Record a payment
-INSERT INTO payments (
-    payment_id, booking_id, amount, processed_by
+    booking_id, hotel_id, room_number, guests_in_room
 ) VALUES (?, ?, ?, ?);
 
--- Receptionist Queries
+-- View Available Rooms
+SELECT 
+    r.room_number,
+    rt.type_name,
+    rt.base_price
+FROM rooms r
+JOIN room_types rt ON r.type_id = rt.type_id
+WHERE NOT EXISTS (
+    SELECT 1 
+    FROM bookings b
+    JOIN booking_rooms br ON b.booking_id = br.booking_id
+    WHERE br.room_number = r.room_number
+    AND b.status_id IN (2, 3)  -- CONFIRMED or CHECKED_IN
+    AND b.check_in_date < ? -- check_out_date
+    AND b.check_out_date > ? -- check_in_date
+);
 
--- Modify booking
-UPDATE bookings 
-SET check_in_date = ?,
-    check_out_date = ?,
-    total_guests = ?,
-    status_id = ?
-WHERE booking_id = ?
-AND status_id IN (1, 2);  -- PENDING, CONFIRMED
-
--- View housekeepers availability
-SELECT u.user_id, u.first_name, u.last_name,
-       COUNT(hs.schedule_id) as pending_tasks
-FROM users u
-JOIN housekeeping_staff hs_staff ON u.user_id = hs_staff.user_id
-JOIN staff s ON u.user_id = s.user_id
-LEFT JOIN housekeeping_schedule hs ON u.user_id = hs.staff_id
-    AND hs.scheduled_date = ? AND hs.status_id = 1  -- PENDING
-WHERE s.hotel_id = ?
-GROUP BY u.user_id, u.first_name, u.last_name;
-
--- Housekeeping Queries
-
--- View my cleaning schedule
-SELECT hs.schedule_id, r.room_number, h.hotel_name, 
-       hs.scheduled_date, rs.status_name
-FROM housekeeping_schedule hs
-JOIN rooms r ON hs.room_id = r.room_id
-JOIN hotels h ON r.hotel_id = h.hotel_id
-JOIN room_statuses rs ON hs.status_id = rs.status_id
-WHERE hs.staff_id = ?
-AND hs.scheduled_date >= CURRENT_DATE
-ORDER BY hs.scheduled_date;
-
--- Update task status to completed
-UPDATE housekeeping_schedule 
-SET status_id = 2  -- COMPLETED
-WHERE schedule_id = ?
-AND staff_id = ?
-AND status_id = 1;  -- PENDING
-
--- Administrator Queries
-
--- View most booked room types
-SELECT rt.type_name, h.hotel_name, COUNT(*) as booking_count
+-- View My Bookings
+SELECT b.*, r.room_number, rt.base_price, h.hotel_name,
+       CONCAT(u.first_name, ' ', u.last_name) as guest_name,
+       bs.status_name,
+       br.guests_in_room
 FROM bookings b
 JOIN booking_rooms br ON b.booking_id = br.booking_id
-JOIN rooms r ON br.room_id = r.room_id
+JOIN rooms r ON br.hotel_id = r.hotel_id AND br.room_number = r.room_number
 JOIN room_types rt ON r.type_id = rt.type_id
 JOIN hotels h ON r.hotel_id = h.hotel_id
-WHERE b.check_in_date BETWEEN ? AND ?
-GROUP BY rt.type_id, h.hotel_id
-ORDER BY booking_count DESC;
+JOIN users u ON b.guest_id = u.user_id
+JOIN booking_statuses bs ON b.status_id = bs.status_id
+WHERE b.guest_id = ?;
 
--- View all employees with their roles
-SELECT u.user_id, u.first_name, u.last_name,
-       CASE 
-           WHEN a.user_id IS NOT NULL THEN 'ADMINISTRATOR'
-           WHEN r.user_id IS NOT NULL THEN 'RECEPTIONIST'
-           WHEN h.user_id IS NOT NULL THEN 'HOUSEKEEPING'
-       END as role,
-       h.hotel_name, s.salary
-FROM users u
-JOIN staff s ON u.user_id = s.user_id
-JOIN hotels h ON s.hotel_id = h.hotel_id
-LEFT JOIN administrator_staff a ON u.user_id = a.user_id
-LEFT JOIN receptionist_staff r ON u.user_id = r.user_id
-LEFT JOIN housekeeping_staff h ON u.user_id = h.user_id
-ORDER BY h.hotel_name, role;
+-- Cancel Booking
+UPDATE bookings 
+SET status_id = 5  -- CANCELLED
+WHERE booking_id = ?;   
 
--- Add revenue report query
+
+-- Administrator Menu
+-- Add Room
+INSERT INTO rooms (hotel_id, room_number, type_id, status_id) VALUES (?, ?, ?, ?); 
+
+-- Delete Room
+DELETE FROM rooms WHERE hotel_id = ? AND room_number = ?;
+
+-- Manage Room Status
+UPDATE rooms SET status_id = ? WHERE hotel_id = ? AND room_number = ?;
+
+-- Add User
+INSERT INTO users (user_id, first_name, last_name, phone, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP);
+
+-- View User Accounts
+SELECT * FROM users;
+
+-- Generate Revenue Report
 SELECT 
-    h.hotel_name,
-    DATE_FORMAT(b.check_out_date, '%Y-%m') as month,
     COUNT(DISTINCT b.booking_id) as total_bookings,
-    SUM(p.amount) as total_revenue
+    SUM(p.amount) as total_revenue,
+    AVG(p.amount) as average_revenue_per_booking
 FROM hotels h
 JOIN rooms r ON h.hotel_id = r.hotel_id
-JOIN booking_rooms br ON r.hotel_id = br.hotel_id 
-    AND r.room_number = br.room_number
+JOIN room_types rt ON r.type_id = rt.type_id
+JOIN booking_rooms br ON r.hotel_id = br.hotel_id AND r.room_number = br.room_number
 JOIN bookings b ON br.booking_id = b.booking_id
 JOIN payments p ON b.booking_id = p.booking_id
-WHERE b.status_id = 4  -- CHECKED_OUT
-GROUP BY h.hotel_id, month
-ORDER BY h.hotel_name, month DESC;
+WHERE b.status_id = 4 -- CHECKED_OUT
+AND h.hotel_id = ?; 
 
--- Add booking modification constraints
-ALTER TABLE bookings
-ADD CONSTRAINT valid_booking_modification
-CHECK (
+-- View All Booking Records
+SELECT * FROM bookings;
+
+-- View All Housekeeping Records
+SELECT * FROM housekeeping_schedule;
+
+-- View Most Booked Room Types
+SELECT rt.type_name, COUNT(*) as booking_count
+FROM bookings b
+JOIN booking_rooms br ON b.booking_id = br.booking_id
+JOIN rooms r ON br.hotel_id = r.hotel_id AND br.room_number = r.room_number
+JOIN room_types rt ON r.type_id = rt.type_id
+WHERE b.check_in_date BETWEEN ? AND ?
+AND h.hotel_id = ?
+GROUP BY rt.type_id
+ORDER BY booking_count DESC;
+
+-- View All the Employees with Their Role
+SELECT u.*, 
     CASE 
-        WHEN status_id IN (3, 4) THEN FALSE  -- Cannot modify CHECKED_IN or CHECKED_OUT
-        ELSE TRUE
-    END
-);
+        WHEN a.user_id IS NOT NULL THEN 'ADMINISTRATOR'
+        WHEN r.user_id IS NOT NULL THEN 'RECEPTIONIST'
+        WHEN h.user_id IS NOT NULL THEN 'HOUSEKEEPING'
+    END as role
+FROM users u
+LEFT JOIN administrator_staff a ON u.user_id = a.user_id
+LEFT JOIN receptionist_staff r ON u.user_id = r.user_id
+LEFT JOIN housekeeping_staff h ON u.user_id = h.user_id;
 
--- Add booking modification query
-UPDATE bookings 
+-- Receptionist Menu
+-- Add New Booking
+INSERT INTO bookings (
+    booking_id, guest_id, check_in_date, 
+    check_out_date, status_id, total_guests
+) VALUES (?, ?, ?, ?, ?, ?);
+INSERT INTO booking_rooms (
+    booking_id, hotel_id, room_number, guests_in_room
+) VALUES (?, ?, ?, ?);
+
+-- Modify Booking
+UPDATE bookings     
 SET check_in_date = ?,
     check_out_date = ?,
     total_guests = ?,
     status_id = ?
-WHERE booking_id = ?
-AND status_id IN (1, 2)  -- Only PENDING or CONFIRMED
-AND NOT EXISTS (
-    SELECT 1 FROM payments 
-    WHERE booking_id = bookings.booking_id
-);
+WHERE booking_id = ?;
+
+-- Delete Booking
+DELETE FROM bookings WHERE booking_id = ?;
+
+-- View Bookings
+SELECT * FROM bookings;
+
+-- Process Payment
+INSERT INTO payments (booking_id, amount) VALUES (?, ?);
+UPDATE bookings SET status_id = 4 WHERE booking_id = ?;
+
+-- Assign Housekeeping Task
+INSERT INTO housekeeping_schedule (hotel_id, room_number, scheduled_date, status_id) VALUES (?, ?, ?, ?);
+
+-- View All Housekeepers and Their Availability
+SELECT 
+    hs_staff.user_id,
+    u.first_name,
+    u.last_name,
+    u.phone,
+    h.hotel_name,
+    hs.room_number,
+    hs.scheduled_date,
+    rs.status_name
+FROM housekeeping_staff hs_staff
+JOIN users u ON hs_staff.user_id = u.user_id
+JOIN staff s ON hs_staff.user_id = s.user_id
+JOIN hotels h ON s.hotel_id = h.hotel_id
+LEFT JOIN housekeeping_schedule hs ON h.hotel_id = hs.hotel_id 
+    AND hs.scheduled_date = CURRENT_DATE
+LEFT JOIN room_statuses rs ON hs.status_id = rs.status_id;
+
+-- Housekeeping Menu
+-- View Pending Housekeeping Tasks
+SELECT * FROM housekeeping_schedule WHERE status_id = 1;
+
+-- View Completed Housekeeping Tasks
+SELECT * FROM housekeeping_schedule WHERE status_id = 2;
+
+-- Update Task Status to Completed
+UPDATE housekeeping_schedule SET status_id = 2 WHERE hotel_id = ? AND room_number = ? AND scheduled_date = ?;
+
+-- View My Cleaning Schedule
+SELECT * FROM housekeeping_schedule WHERE user_id = ?;

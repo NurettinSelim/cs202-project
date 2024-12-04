@@ -335,26 +335,18 @@ CREATE TRIGGER before_checkout_payment_check
 BEFORE UPDATE ON bookings
 FOR EACH ROW
 BEGIN
-    DECLARE total_paid DECIMAL(10,2);
-    DECLARE room_total DECIMAL(10,2);
+    DECLARE has_payments BOOLEAN;
     
-    -- total amount paid
-    SELECT COALESCE(SUM(amount), 0) INTO total_paid
-    FROM payments
-    WHERE booking_id = NEW.booking_id;
+    -- Check if booking has any payments
+    SELECT EXISTS (
+        SELECT 1 FROM payments 
+        WHERE booking_id = NEW.booking_id
+    ) INTO has_payments;
     
-    -- total room cost
-    SELECT COALESCE(SUM(rt.base_price * DATEDIFF(NEW.check_out_date, NEW.check_in_date)), 0)
-    INTO room_total
-    FROM booking_rooms br
-    JOIN rooms r ON br.hotel_id = r.hotel_id AND br.room_number = r.room_number
-    JOIN room_types rt ON r.type_id = rt.type_id
-    WHERE br.booking_id = NEW.booking_id;
-    
-    -- if trying to check out and haven't paid full amount
-    IF NEW.status_id = 4 AND total_paid < room_total THEN
+    -- if trying to check out and has no payments
+    IF NEW.status_id = 4 AND NOT has_payments THEN
         SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Cannot check out: Full payment required';
+        SET MESSAGE_TEXT = 'Cannot check out: No payments found';
     END IF;
 END//
 
