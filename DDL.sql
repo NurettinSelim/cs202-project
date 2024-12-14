@@ -1,3 +1,5 @@
+DROP DATABASE IF EXISTS hotel_management;
+
 -- create the database
 CREATE DATABASE hotel_management;
 USE hotel_management;
@@ -13,6 +15,8 @@ CREATE TABLE hotels (
 -- users table
 CREATE TABLE users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     phone VARCHAR(20) CHECK (phone IS NULL OR phone REGEXP '^[0-9+][0-9-+]{9,19}$'),
@@ -130,15 +134,15 @@ CREATE TABLE payments (
 
 -- housekeeping schedule table
 CREATE TABLE housekeeping_schedule (
+    schedule_id INT AUTO_INCREMENT,
     hotel_id INT,
     room_number VARCHAR(10),
-    schedule_number INT AUTO_INCREMENT,
     scheduled_date DATE NOT NULL,
     staff_id INT NOT NULL,
     status_id INT NOT NULL,
     created_by INT NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (hotel_id, room_number, schedule_number),
+    PRIMARY KEY (schedule_id),
     FOREIGN KEY (hotel_id, room_number) REFERENCES rooms(hotel_id, room_number),
     FOREIGN KEY (staff_id) REFERENCES housekeeping_staff(user_id),
     FOREIGN KEY (created_by) REFERENCES users(user_id),
