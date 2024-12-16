@@ -84,7 +84,6 @@ public class GuestMenuHandler {
             // Button panel
             JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
             HashMap<Room, JPanel> roomPanels = new HashMap<>();
-
             JButton listAvailableRoomsButton = UIComponents.createStyledButton("List Available Rooms");
             listAvailableRoomsButton.addActionListener(e -> {
                 try {
@@ -109,7 +108,6 @@ public class GuestMenuHandler {
                             roomPanel.setLayout(new BoxLayout(roomPanel, BoxLayout.X_AXIS));
 
                             JCheckBox roomCheckBox = new JCheckBox(room.toDisplayString());
-
                             roomPanel.add(roomCheckBox);
                             roomPanels.put(room, roomPanel);
                             roomSelectionPanel.add(roomPanel);
@@ -136,41 +134,34 @@ public class GuestMenuHandler {
                     }
 
                     int totalGuestsRequested;
+                    int totalCapacityOfSelectedRooms = 0;
+                    HashMap<Room, Integer> selectedRooms = new HashMap<>();
                     try {
                         totalGuestsRequested = Integer.parseInt(totalGuestsField.getText());
                         if (totalGuestsRequested <= 0) {
                             UIComponents.showWarning(dialog, "Total guests must be greater than 0");
                             return;
                         }
+                        for (Room room : roomPanels.keySet()) {
+                            JPanel roomPanel = roomPanels.get(room);
+                            JCheckBox roomCheckBox = (JCheckBox) roomPanel.getComponent(0);
+                            if (roomCheckBox.isSelected()) {
+                                selectedRooms.put(room, room.getRoomType().getCapacity());
+                                totalCapacityOfSelectedRooms += room.getRoomType().getCapacity();
+                            }
+                        }
+ 
+                        if (selectedRooms.isEmpty()) {
+                            UIComponents.showWarning(dialog, "Please select at least one room");
+                            return;
+                        }
+                        if (totalGuestsRequested > totalCapacityOfSelectedRooms) {
+                            UIComponents.showWarning(dialog,
+                                    "Total guests requested exceeds the capacity of the selected rooms");
+                            return;
+                        }
                     } catch (NumberFormatException ex) {
                         UIComponents.showWarning(dialog, "Please enter a valid number for total guests");
-                        return;
-                    }
-
-                    // Collect selected rooms and their guest counts
-                    HashMap<Room, Integer> selectedRooms = new HashMap<>();
-                    int totalGuestsAssigned = 0;
-
-                    for (Room room : roomPanels.keySet()) {
-                        JPanel roomPanel = roomPanels.get(room);
-                        JCheckBox checkBox = (JCheckBox) roomPanel.getComponent(0);
-                        if (checkBox.isSelected()) {
-                            JSpinner spinner = (JSpinner) roomPanel.getComponent(3);
-                            int guestsInRoom = (Integer) spinner.getValue();
-                            selectedRooms.put(room, guestsInRoom);
-                            totalGuestsAssigned += guestsInRoom;
-                        }
-                    }
-
-                    if (selectedRooms.isEmpty()) {
-                        UIComponents.showWarning(dialog, "Please select at least one room");
-                        return;
-                    }
-
-                    if (totalGuestsAssigned != totalGuestsRequested) {
-                        UIComponents.showWarning(dialog,
-                                "Total guests assigned to rooms (" + totalGuestsAssigned +
-                                        ") must match total guests requested (" + totalGuestsRequested + ")");
                         return;
                     }
 
