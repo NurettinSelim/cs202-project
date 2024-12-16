@@ -5,6 +5,7 @@ import model.RoomType;
 import model.RoomStatus;
 import model.Hotel;
 import java.sql.Date;
+import java.util.ArrayList;
 import java.util.List;
 
 public interface RoomService extends BaseService<Room, String> {
@@ -17,4 +18,5 @@ public interface RoomService extends BaseService<Room, String> {
     void updateRoomStatus(Hotel hotel, String roomNumber, RoomStatus newStatus);
     double getOccupancyRate(Hotel hotel, Date startDate, Date endDate);
     List<Room> findRoomsNeedingCleaning(Hotel hotel);
+    ArrayList<Room> getAvailableRooms(String checkInDate, String checkOutDate);
 }

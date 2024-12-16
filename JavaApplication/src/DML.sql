@@ -34,13 +34,13 @@ INSERT INTO booking_statuses (status_name) VALUES
 ('CANCELLED');
 
 -- Sample users
-INSERT INTO users (username, password, first_name, last_name, phone, created_at) VALUES
-('selim.ozyilmaz', 'selim123', 'Selim', 'Özyılmaz', '+905051234569', CURRENT_TIMESTAMP),
-('ipek.debreli', 'ipek123', 'İpek', 'Debreli', '+905051234570', CURRENT_TIMESTAMP),
-('ayse.yilmaz', 'ayse123', 'Ayşe', 'Yılmaz', '+905051234571', CURRENT_TIMESTAMP),
-('mehmet.kaya', 'mehmet123', 'Mehmet', 'Kaya', '+905051234572', CURRENT_TIMESTAMP),
-('zeynep.demir', 'zeynep123', 'Zeynep', 'Demir', '+905051234573', CURRENT_TIMESTAMP),
-('can.yucel', 'can123', 'Can', 'Yücel', '+905051234574', CURRENT_TIMESTAMP);
+INSERT INTO users (first_name, last_name, phone, created_at) VALUES
+('Selim', 'Özyılmaz', '+905051234569', CURRENT_TIMESTAMP),
+('İpek', 'Debreli', '+905051234570', CURRENT_TIMESTAMP),
+('Ayşe', 'Yılmaz', '+905051234571', CURRENT_TIMESTAMP),
+('Mehmet', 'Kaya', '+905051234572', CURRENT_TIMESTAMP),
+('Zeynep', 'Demir', '+905051234573', CURRENT_TIMESTAMP),
+('Can', 'Yücel', '+905051234574', CURRENT_TIMESTAMP);
 
 -- Staff records
 INSERT INTO staff (user_id, hotel_id, salary, hire_date) VALUES
@@ -191,7 +191,7 @@ DELETE FROM rooms WHERE hotel_id = ? AND room_number = ?;
 UPDATE rooms SET status_id = ? WHERE hotel_id = ? AND room_number = ?;
 
 -- Add User
-INSERT INTO users (username, password, first_name, last_name, phone, created_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP);
+INSERT INTO users (first_name, last_name, phone, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP);
 
 -- View User Accounts
 SELECT * FROM users;

@@ -7,9 +7,8 @@ import java.sql.Timestamp;
 public class HousekeepingStaff extends Staff {
     public HousekeepingStaff() {}
 
-    public HousekeepingStaff(int userId, String username, String password, String firstName, String lastName,
-                            String phone, Timestamp createdAt, Hotel hotel, BigDecimal salary, Date hireDate) {
-        super(userId, username, password, firstName, lastName, phone, createdAt, hotel, salary, hireDate);
+    public HousekeepingStaff(int userId, String firstName, String lastName, String phone, Timestamp createdAt, Hotel hotel, BigDecimal salary, Date hireDate) {
+        super(userId, firstName, lastName, phone, createdAt, hotel, salary, hireDate);
     }
 
     @Override

@@ -4,10 +4,25 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.List;
 
 import util.DatabaseConnection;
 
-public class AdminMenuController {
+public class AdminMenuController extends BaseControlller {
+    private static List<String> menuItems = Arrays.asList(
+        "1. Add Room",
+        "2. Delete Room",
+        "3. Manage Room Status",
+        "4. Add User Account",
+        "5. View User Accounts",
+        "6. Generate Revenue Report",
+        "7. View All Booking Records",
+        "8. View All Housekeeping Records",
+        "9. View Most Booked Room Types",
+        "10. View All Employees",
+        "11. Return to Main Menu"
+    );
 
     public void addRoom(int hotelId, int roomNumber, int typeId, int statusId) throws SQLException {
         try (Connection conn = DatabaseConnection.getConnection()) {
@@ -157,5 +172,9 @@ public class AdminMenuController {
                 System.out.println(rs.getString("first_name") + " " + rs.getString("last_name"));
             }
         }
+    }
+
+    public void displayMenu() {
+        super.displayMenu(menuItems);
     }
 }

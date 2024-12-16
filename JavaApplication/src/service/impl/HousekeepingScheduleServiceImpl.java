@@ -74,7 +74,7 @@ public class HousekeepingScheduleServiceImpl extends BaseServiceImpl<Housekeepin
 
     @Override
     public List<HousekeepingSchedule> findByHotel(Hotel hotel) {
-        String sql = "SELECT hs.*, u.username, u.first_name, u.last_name, " +
+        String sql = "SELECT hs.*, u.first_name, u.last_name, " +
                 "hks.status_name FROM housekeeping_schedule hs " +
                 "JOIN users u ON hs.staff_id = u.user_id " +
                 "JOIN housekeeping_statuses hks ON hs.status_id = hks.status_id " +
@@ -90,7 +90,6 @@ public class HousekeepingScheduleServiceImpl extends BaseServiceImpl<Housekeepin
             while (rs.next()) {
                 HousekeepingSchedule schedule = mapRow(rs);
                 // Set additional properties from joins
-                schedule.getStaff().setUsername(rs.getString("username"));
                 schedule.getStaff().setFirstName(rs.getString("first_name"));
                 schedule.getStaff().setLastName(rs.getString("last_name"));
                 schedule.getStatus().setStatusName(rs.getString("status_name"));
@@ -128,7 +127,7 @@ public class HousekeepingScheduleServiceImpl extends BaseServiceImpl<Housekeepin
 
     @Override
     public List<HousekeepingSchedule> findByDate(Hotel hotel, Date date) {
-        String sql = "SELECT hs.*, u.username, u.first_name, u.last_name, " +
+        String sql = "SELECT hs.*, u.first_name, u.last_name, " +
                 "hks.status_name FROM housekeeping_schedule hs " +
                 "JOIN users u ON hs.staff_id = u.user_id " +
                 "JOIN housekeeping_statuses hks ON hs.status_id = hks.status_id " +
@@ -143,7 +142,6 @@ public class HousekeepingScheduleServiceImpl extends BaseServiceImpl<Housekeepin
 
             while (rs.next()) {
                 HousekeepingSchedule schedule = mapRow(rs);
-                schedule.getStaff().setUsername(rs.getString("username"));
                 schedule.getStaff().setFirstName(rs.getString("first_name"));
                 schedule.getStaff().setLastName(rs.getString("last_name"));
                 schedule.getStatus().setStatusName(rs.getString("status_name"));
@@ -157,7 +155,7 @@ public class HousekeepingScheduleServiceImpl extends BaseServiceImpl<Housekeepin
 
     @Override
     public List<HousekeepingSchedule> findByDateRange(Hotel hotel, Date startDate, Date endDate) {
-        String sql = "SELECT hs.*, u.username, u.first_name, u.last_name, " +
+        String sql = "SELECT hs.*, u.first_name, u.last_name, " +
                 "hks.status_name FROM housekeeping_schedule hs " +
                 "JOIN users u ON hs.staff_id = u.user_id " +
                 "JOIN housekeeping_statuses hks ON hs.status_id = hks.status_id " +
@@ -174,7 +172,6 @@ public class HousekeepingScheduleServiceImpl extends BaseServiceImpl<Housekeepin
 
             while (rs.next()) {
                 HousekeepingSchedule schedule = mapRow(rs);
-                schedule.getStaff().setUsername(rs.getString("username"));
                 schedule.getStaff().setFirstName(rs.getString("first_name"));
                 schedule.getStaff().setLastName(rs.getString("last_name"));
                 schedule.getStatus().setStatusName(rs.getString("status_name"));
@@ -188,7 +185,7 @@ public class HousekeepingScheduleServiceImpl extends BaseServiceImpl<Housekeepin
 
     @Override
     public List<HousekeepingSchedule> findByRoom(Room room) {
-        String sql = "SELECT hs.*, u.username, u.first_name, u.last_name, " +
+        String sql = "SELECT hs.*, u.first_name, u.last_name, " +
                 "hks.status_name FROM housekeeping_schedule hs " +
                 "JOIN users u ON hs.staff_id = u.user_id " +
                 "JOIN housekeeping_statuses hks ON hs.status_id = hks.status_id " +
@@ -204,7 +201,6 @@ public class HousekeepingScheduleServiceImpl extends BaseServiceImpl<Housekeepin
 
             while (rs.next()) {
                 HousekeepingSchedule schedule = mapRow(rs);
-                schedule.getStaff().setUsername(rs.getString("username"));
                 schedule.getStaff().setFirstName(rs.getString("first_name"));
                 schedule.getStaff().setLastName(rs.getString("last_name"));
                 schedule.getStatus().setStatusName(rs.getString("status_name"));
@@ -254,7 +250,7 @@ public class HousekeepingScheduleServiceImpl extends BaseServiceImpl<Housekeepin
 
     @Override
     public List<HousekeepingSchedule> findPendingSchedules(Hotel hotel) {
-        String sql = "SELECT hs.*, u.username, u.first_name, u.last_name, " +
+        String sql = "SELECT hs.*, u.first_name, u.last_name, " +
                 "hks.status_name FROM housekeeping_schedule hs " +
                 "JOIN users u ON hs.staff_id = u.user_id " +
                 "JOIN housekeeping_statuses hks ON hs.status_id = hks.status_id " +
@@ -269,7 +265,6 @@ public class HousekeepingScheduleServiceImpl extends BaseServiceImpl<Housekeepin
 
             while (rs.next()) {
                 HousekeepingSchedule schedule = mapRow(rs);
-                schedule.getStaff().setUsername(rs.getString("username"));
                 schedule.getStaff().setFirstName(rs.getString("first_name"));
                 schedule.getStaff().setLastName(rs.getString("last_name"));
                 schedule.getStatus().setStatusName(rs.getString("status_name"));
@@ -283,7 +278,7 @@ public class HousekeepingScheduleServiceImpl extends BaseServiceImpl<Housekeepin
 
     @Override
     public List<HousekeepingSchedule> findCompletedSchedules(Hotel hotel, Date startDate, Date endDate) {
-        String sql = "SELECT hs.*, u.username, u.first_name, u.last_name, " +
+        String sql = "SELECT hs.*, u.first_name, u.last_name, " +
                 "hks.status_name FROM housekeeping_schedule hs " +
                 "JOIN users u ON hs.staff_id = u.user_id " +
                 "JOIN housekeeping_statuses hks ON hs.status_id = hks.status_id " +
@@ -301,7 +296,6 @@ public class HousekeepingScheduleServiceImpl extends BaseServiceImpl<Housekeepin
 
             while (rs.next()) {
                 HousekeepingSchedule schedule = mapRow(rs);
-                schedule.getStaff().setUsername(rs.getString("username"));
                 schedule.getStaff().setFirstName(rs.getString("first_name"));
                 schedule.getStaff().setLastName(rs.getString("last_name"));
                 schedule.getStatus().setStatusName(rs.getString("status_name"));
@@ -386,7 +380,6 @@ public class HousekeepingScheduleServiceImpl extends BaseServiceImpl<Housekeepin
             while (rs.next()) {
                 HousekeepingStaff housekeeper = new HousekeepingStaff();
                 housekeeper.setUserId(rs.getInt("user_id"));
-                housekeeper.setUsername(rs.getString("username"));
                 housekeeper.setFirstName(rs.getString("first_name"));
                 housekeeper.setLastName(rs.getString("last_name"));
                 housekeeper.setHotel(hotel);

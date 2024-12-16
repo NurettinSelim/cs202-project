@@ -17,8 +17,6 @@ CREATE TABLE hotels
 CREATE TABLE users
 (
     user_id    INT AUTO_INCREMENT PRIMARY KEY,
-    username   VARCHAR(50)  NOT NULL UNIQUE,
-    password   VARCHAR(255) NOT NULL,
     first_name VARCHAR(50)  NOT NULL,
     last_name  VARCHAR(50)  NOT NULL,
     phone      VARCHAR(20) CHECK (phone IS NULL OR phone REGEXP '^[0-9+][0-9-+]{9,19}$'),
@@ -453,13 +451,13 @@ VALUES ('PENDING'),
        ('CANCELLED');
 
 -- Sample users
-INSERT INTO users (username, password, first_name, last_name, phone, created_at)
-VALUES ('selim.ozyilmaz', 'selim123', 'Selim', 'Özyılmaz', '+905051234569', CURRENT_TIMESTAMP),
-       ('ipek.debreli', 'ipek123', 'İpek', 'Debreli', '+905051234570', CURRENT_TIMESTAMP),
-       ('ayse.yilmaz', 'ayse123', 'Ayşe', 'Yılmaz', '+905051234571', CURRENT_TIMESTAMP),
-       ('mehmet.kaya', 'mehmet123', 'Mehmet', 'Kaya', '+905051234572', CURRENT_TIMESTAMP),
-       ('zeynep.demir', 'zeynep123', 'Zeynep', 'Demir', '+905051234573', CURRENT_TIMESTAMP),
-       ('can.yucel', 'can123', 'Can', 'Yücel', '+905051234574', CURRENT_TIMESTAMP);
+INSERT INTO users (first_name, last_name, phone, created_at)
+VALUES ('Selim', 'Özyılmaz', '+905051234569', CURRENT_TIMESTAMP),
+       ('İpek', 'Debreli', '+905051234570', CURRENT_TIMESTAMP),
+       ('Ayşe', 'Yılmaz', '+905051234571', CURRENT_TIMESTAMP),
+       ('Mehmet', 'Kaya', '+905051234572', CURRENT_TIMESTAMP),
+       ('Zeynep', 'Demir', '+905051234573', CURRENT_TIMESTAMP),
+       ('Can', 'Yücel', '+905051234574', CURRENT_TIMESTAMP);
 
 -- Staff records
 INSERT INTO staff (user_id, hotel_id, salary, hire_date)

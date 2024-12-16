@@ -8,7 +8,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public abstract class BaseServiceImpl<T, ID> implements BaseService<T, ID> {
     protected abstract String getTableName();
@@ -31,16 +30,16 @@ public abstract class BaseServiceImpl<T, ID> implements BaseService<T, ID> {
     }
 
     @Override
-    public Optional<T> findById(ID id) {
+    public T findById(ID id) {
         String sql = String.format("SELECT * FROM %s WHERE %s = ?", getTableName(), getIdColumnName());
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setObject(1, id);
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
-                return Optional.of(mapRow(rs));
+                return mapRow(rs);
             }
-            return Optional.empty();
+            return null;
         } catch (SQLException e) {
             throw new RuntimeException("Error finding entity by ID", e);
         }

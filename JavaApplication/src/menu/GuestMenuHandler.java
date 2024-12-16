@@ -1,150 +1,319 @@
 package menu;
 
-import util.DatabaseConnection;
+import controller.GuestMenuController;
+import model.Booking;
+import model.Room;
+import util.UIComponents;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Scanner;
+import javax.swing.*;
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 public class GuestMenuHandler {
-    private static Scanner scanner = new Scanner(System.in);
+    private final GuestMenuController guestMenuController;
+    private JPanel mainPanel;
+    private final JFrame parentFrame;
 
-    public static void handleMenu() {
-        while (true) {
-            displayMenu();
-            int choice = getUserChoice();
+    public GuestMenuHandler(JFrame parentFrame) {
+        this.parentFrame = parentFrame;
+        this.guestMenuController = new GuestMenuController();
+    }
 
-            switch (choice) {
-                case 1:
-                    addNewBooking();
-                    break;
-                case 2:
-                    viewAvailableRooms();
-                    break;
-                case 3:
-                    viewMyBookings();
-                    break;
-                case 4:
-                    cancelBooking();
-                    break;
-                case 5:
-                    return;
-                default:
-                    System.out.println("Invalid choice. Please try again.");
-            }
+    public JPanel getMainPanel() {
+        if (mainPanel == null) {
+            createMainPanel();
         }
+        return mainPanel;
     }
 
-    private static void displayMenu() {
-        System.out.println("\n=== Guest Menu ===");
-        System.out.println("1. Add New Booking");
-        System.out.println("2. View Available Rooms");
-        System.out.println("3. View My Bookings");
-        System.out.println("4. Cancel Booking");
-        System.out.println("5. Return to Main Menu");
-        System.out.print("Enter your choice: ");
+    private void createMainPanel() {
+        mainPanel = UIComponents.createButtonPanel();
+        GridBagConstraints gbc = UIComponents.createGBC();
+
+        // Create buttons
+        JButton addBookingBtn = UIComponents.createStyledButton("Make New Booking");
+        JButton viewRoomsBtn = UIComponents.createStyledButton("View Available Rooms");
+        JButton viewBookingsBtn = UIComponents.createStyledButton("View My Bookings");
+        JButton cancelBookingBtn = UIComponents.createStyledButton("Cancel Booking");
+
+        // Add action listeners
+        addBookingBtn.addActionListener(e -> showAddBookingDialog());
+        viewRoomsBtn.addActionListener(e -> showAvailableRooms());
+        viewBookingsBtn.addActionListener(e -> showMyBookings());
+        cancelBookingBtn.addActionListener(e -> showCancelBookingDialog());
+
+        // Add components to panel
+        mainPanel.add(addBookingBtn, gbc);
+        mainPanel.add(viewRoomsBtn, gbc);
+        mainPanel.add(viewBookingsBtn, gbc);
+        mainPanel.add(cancelBookingBtn, gbc);
     }
 
-    private static int getUserChoice() {
+    private void showAddBookingDialog() {
         try {
-            return Integer.parseInt(scanner.nextLine());
-        } catch (NumberFormatException e) {
-            return -1;
+            JDialog dialog = UIComponents.createStyledDialog(parentFrame, "Make New Booking",
+                    UIComponents.SMALL_DIALOG_SIZE);
+            JPanel panel = UIComponents.createMainPanel();
+
+            // Create form panel for input fields
+            JPanel formPanel = UIComponents.createFormPanel(3, 2);
+            formPanel.add(new JLabel("Check-in Date:"));
+            JTextField checkInDateField = new JTextField(10);
+            formPanel.add(checkInDateField);
+
+            formPanel.add(new JLabel("Check-out Date:"));
+            JTextField checkOutDateField = new JTextField(10);
+            formPanel.add(checkOutDateField);
+
+            formPanel.add(new JLabel("Total Guests:"));
+            JTextField totalGuestsField = new JTextField(10);
+            formPanel.add(totalGuestsField);
+
+            // Create room selection panel (initially empty)
+            JPanel roomSelectionPanel = new JPanel();
+            roomSelectionPanel.setLayout(new BoxLayout(roomSelectionPanel, BoxLayout.Y_AXIS));
+            JScrollPane scrollPane = new JScrollPane(roomSelectionPanel);
+            scrollPane.setPreferredSize(new Dimension(300, 150));
+            scrollPane.setVisible(false);
+
+            // Add panels to main panel
+            panel.add(formPanel, BorderLayout.NORTH);
+            panel.add(scrollPane, BorderLayout.CENTER);
+
+            // Button panel
+            JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+            HashMap<Room, JPanel> roomPanels = new HashMap<>();
+
+            JButton listAvailableRoomsButton = UIComponents.createStyledButton("List Available Rooms");
+            listAvailableRoomsButton.addActionListener(e -> {
+                try {
+                    if (checkInDateField.getText().isEmpty() || checkOutDateField.getText().isEmpty()) {
+                        UIComponents.showWarning(dialog, "Please enter both check-in and check-out dates");
+                        return;
+                    }
+
+                    roomPanels.clear();
+                    roomSelectionPanel.removeAll();
+
+                    ArrayList<Room> availableRoomsList = guestMenuController.viewAvailableRooms(
+                            checkInDateField.getText(),
+                            checkOutDateField.getText());
+
+                    if (availableRoomsList.isEmpty()) {
+                        UIComponents.showInfo(dialog, "No rooms available for the selected dates");
+                        scrollPane.setVisible(false);
+                    } else {
+                        for (Room room : availableRoomsList) {
+                            JPanel roomPanel = new JPanel();
+                            roomPanel.setLayout(new BoxLayout(roomPanel, BoxLayout.X_AXIS));
+
+                            JCheckBox roomCheckBox = new JCheckBox(room.toDisplayString());
+                            JLabel maxGuestsLabel = new JLabel("Max Guests: " + room.getRoomType().getCapacity());
+
+                            roomPanel.add(roomCheckBox);
+                            roomPanel.add(Box.createHorizontalStrut(10));
+                            roomPanel.add(maxGuestsLabel);
+
+                            roomPanels.put(room, roomPanel);
+                            roomSelectionPanel.add(roomPanel);
+                        }
+                        scrollPane.setVisible(true);
+                        roomSelectionPanel.revalidate();
+                        roomSelectionPanel.repaint();
+                    }
+                    dialog.pack();
+                } catch (Exception ex) {
+                    UIComponents.handleException(dialog, ex, "Failed to list available rooms");
+                }
+            });
+            buttonPanel.add(listAvailableRoomsButton);
+
+            JButton addBookingButton = UIComponents.createStyledButton("Add Booking");
+            addBookingButton.addActionListener(e -> {
+                try {
+                    if (checkInDateField.getText().isEmpty() ||
+                            checkOutDateField.getText().isEmpty() ||
+                            totalGuestsField.getText().isEmpty()) {
+                        UIComponents.showWarning(dialog, "Please fill in all fields");
+                        return;
+                    }
+
+                    int totalGuestsRequested;
+                    try {
+                        totalGuestsRequested = Integer.parseInt(totalGuestsField.getText());
+                        if (totalGuestsRequested <= 0) {
+                            UIComponents.showWarning(dialog, "Total guests must be greater than 0");
+                            return;
+                        }
+                    } catch (NumberFormatException ex) {
+                        UIComponents.showWarning(dialog, "Please enter a valid number for total guests");
+                        return;
+                    }
+
+                    // Collect selected rooms and their guest counts
+                    HashMap<Room, Integer> selectedRooms = new HashMap<>();
+                    int totalGuestsAssigned = 0;
+
+                    for (Room room : roomPanels.keySet()) {
+                        JPanel roomPanel = roomPanels.get(room);
+                        JCheckBox checkBox = (JCheckBox) roomPanel.getComponent(0);
+                        if (checkBox.isSelected()) {
+                            JSpinner spinner = (JSpinner) roomPanel.getComponent(3);
+                            int guestsInRoom = (Integer) spinner.getValue();
+                            selectedRooms.put(room, guestsInRoom);
+                            totalGuestsAssigned += guestsInRoom;
+                        }
+                    }
+
+                    if (selectedRooms.isEmpty()) {
+                        UIComponents.showWarning(dialog, "Please select at least one room");
+                        return;
+                    }
+
+                    if (totalGuestsAssigned != totalGuestsRequested) {
+                        UIComponents.showWarning(dialog,
+                                "Total guests assigned to rooms (" + totalGuestsAssigned +
+                                        ") must match total guests requested (" + totalGuestsRequested + ")");
+                        return;
+                    }
+
+                    guestMenuController.addNewBooking(
+                            checkInDateField.getText(),
+                            checkOutDateField.getText(),
+                            totalGuestsRequested,
+                            selectedRooms);
+                    UIComponents.showInfo(dialog, "Booking added successfully");
+                    dialog.dispose();
+                } catch (Exception ex) {
+                    UIComponents.handleException(dialog, ex, "Failed to add booking");
+                }
+            });
+            buttonPanel.add(addBookingButton);
+
+            JButton closeButton = UIComponents.createStyledButton("Close");
+            closeButton.addActionListener(e -> dialog.dispose());
+            buttonPanel.add(closeButton);
+
+            panel.add(buttonPanel, BorderLayout.SOUTH);
+            dialog.add(panel);
+            dialog.setVisible(true);
+        } catch (Exception e) {
+            UIComponents.handleException(parentFrame, e, "Failed to show booking dialog");
         }
     }
 
-    private static void addNewBooking() {
-        try (Connection conn = DatabaseConnection.getConnection()) {
-            // Implementation for adding new booking
-            System.out.println("Enter guest ID: ");
-            int guestId = Integer.parseInt(scanner.nextLine());
+    private void showAvailableRooms() {
+        try {
+            JDialog dialog = UIComponents.createStyledDialog(parentFrame, "Available Rooms", UIComponents.DIALOG_SIZE);
+            JPanel panel = UIComponents.createMainPanel();
 
-            System.out.println("Enter check-in date (YYYY-MM-DD): ");
-            String checkInDate = scanner.nextLine();
+            JPanel datePanel = UIComponents.createFormPanel(2, 2);
+            datePanel.add(new JLabel("Check-in Date:"));
+            JTextField checkInDateField = new JTextField(10);
+            datePanel.add(checkInDateField);
 
-            System.out.println("Enter check-out date (YYYY-MM-DD): ");
-            String checkOutDate = scanner.nextLine();
+            datePanel.add(new JLabel("Check-out Date:"));
+            JTextField checkOutDateField = new JTextField(10);
+            datePanel.add(checkOutDateField);
 
-            // Add validation and booking logic here
+            JButton searchButton = UIComponents.createStyledButton("Search");
+            searchButton.addActionListener(e -> {
+                try {
+                    if (checkInDateField.getText().isEmpty() || checkOutDateField.getText().isEmpty()) {
+                        UIComponents.showWarning(dialog, "Please enter both check-in and check-out dates");
+                        return;
+                    }
 
-        } catch (SQLException e) {
-            System.err.println("Error while adding booking: " + e.getMessage());
+                    ArrayList<Room> availableRooms = guestMenuController.viewAvailableRooms(
+                            checkInDateField.getText(),
+                            checkOutDateField.getText());
+
+                    if (availableRooms.isEmpty()) {
+                        UIComponents.showInfo(dialog, "No rooms available for the selected dates");
+                    } else {
+                        StringBuilder roomListString = new StringBuilder();
+                        for (Room room : availableRooms) {
+                            roomListString.append(room.toDisplayString()).append("\n");
+                        }
+                        JTextArea roomList = new JTextArea(roomListString.toString());
+                        roomList.setEditable(false);
+                        panel.add(new JScrollPane(roomList), BorderLayout.CENTER);
+                        dialog.revalidate();
+                    }
+                } catch (Exception ex) {
+                    UIComponents.handleException(dialog, ex, "Failed to search for available rooms");
+                }
+            });
+
+            JPanel searchPanel = new JPanel(new BorderLayout());
+            searchPanel.add(datePanel, BorderLayout.CENTER);
+            searchPanel.add(searchButton, BorderLayout.SOUTH);
+            panel.add(searchPanel, BorderLayout.NORTH);
+
+            JButton closeButton = UIComponents.createStyledButton("Close");
+            closeButton.addActionListener(e -> dialog.dispose());
+            panel.add(closeButton, BorderLayout.SOUTH);
+
+            dialog.add(panel);
+            dialog.setVisible(true);
+        } catch (Exception e) {
+            UIComponents.handleException(parentFrame, e, "Failed to show available rooms dialog");
         }
     }
 
-    private static void viewAvailableRooms() {
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(
-                     "SELECT * FROM rooms WHERE status = 'AVAILABLE'")) {
+    private void showMyBookings() {
+        try {
+            JDialog dialog = UIComponents.createStyledDialog(parentFrame, "My Bookings", UIComponents.DIALOG_SIZE);
+            JPanel panel = UIComponents.createMainPanel();
 
-            ResultSet rs = stmt.executeQuery();
-            System.out.println("\nAvailable Rooms:");
-            System.out.println("Room ID | Type | Price | Status");
-            System.out.println("--------------------------------");
+            JTextArea bookingsList = new JTextArea();
+            bookingsList.setEditable(false);
+            panel.add(new JScrollPane(bookingsList), BorderLayout.CENTER);
 
-            while (rs.next()) {
-                System.out.printf("%7d | %4s | %5.2f | %s%n",
-                        rs.getInt("room_id"),
-                        rs.getString("room_type"),
-                        rs.getDouble("price"),
-                        rs.getString("status"));
+            try {
+                ArrayList<Booking> bookings = guestMenuController.viewMyBookings();
+                String bookingsString = "";
+                for (Booking booking : bookings) {
+                    bookingsString += booking.toDisplayString() + "\n";
+                }
+                if (bookingsString.isEmpty()) {
+                    UIComponents.showInfo(dialog, "You have no bookings");
+                } else {
+                    bookingsList.setText(bookingsString);
+                }
+            } catch (Exception e) {
+                UIComponents.handleException(dialog, e, "Failed to load bookings");
             }
 
-        } catch (SQLException e) {
-            System.err.println("Error viewing available rooms: " + e.getMessage());
+            JButton closeButton = UIComponents.createStyledButton("Close");
+            closeButton.addActionListener(e -> dialog.dispose());
+            panel.add(closeButton, BorderLayout.SOUTH);
+
+            dialog.add(panel);
+            dialog.setVisible(true);
+        } catch (Exception e) {
+            UIComponents.handleException(parentFrame, e, "Failed to show bookings dialog");
         }
     }
 
-    private static void viewMyBookings() {
-        System.out.print("Enter your guest ID: ");
-        int guestId = Integer.parseInt(scanner.nextLine());
+    private void showCancelBookingDialog() {
+        try {
+            JDialog dialog = UIComponents.createStyledDialog(parentFrame, "Cancel Booking",
+                    UIComponents.SMALL_DIALOG_SIZE);
+            JPanel panel = UIComponents.createMainPanel();
 
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(
-                     "SELECT * FROM bookings WHERE guest_id = ?")) {
+            // TODO: Add booking cancellation form
+            panel.add(new JLabel("Booking cancellation form will be implemented here"), BorderLayout.CENTER);
 
-            stmt.setInt(1, guestId);
-            ResultSet rs = stmt.executeQuery();
+            JButton closeButton = UIComponents.createStyledButton("Close");
+            closeButton.addActionListener(e -> dialog.dispose());
+            panel.add(closeButton, BorderLayout.SOUTH);
 
-            System.out.println("\nYour Bookings:");
-            System.out.println("Booking ID | Room ID | Check-in | Check-out | Status");
-            System.out.println("------------------------------------------------");
-
-            while (rs.next()) {
-                System.out.printf("%10d | %7d | %9s | %9s | %s%n",
-                        rs.getInt("booking_id"),
-                        rs.getInt("room_id"),
-                        rs.getDate("check_in_date"),
-                        rs.getDate("check_out_date"),
-                        rs.getString("status"));
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Error viewing bookings: " + e.getMessage());
-        }
-    }
-
-    private static void cancelBooking() {
-        System.out.print("Enter booking ID to cancel: ");
-        int bookingId = Integer.parseInt(scanner.nextLine());
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(
-                     "UPDATE bookings SET status = 'CANCELLED' WHERE booking_id = ? AND status = 'PENDING'")) {
-
-            stmt.setInt(1, bookingId);
-            int affected = stmt.executeUpdate();
-
-            if (affected > 0) {
-                System.out.println("Booking cancelled successfully!");
-            } else {
-                System.out.println("Could not cancel booking. It may not exist or already be processed.");
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Error cancelling booking: " + e.getMessage());
+            dialog.add(panel);
+            dialog.setVisible(true);
+        } catch (Exception e) {
+            UIComponents.handleException(parentFrame, e, "Failed to show cancellation dialog");
         }
     }
 }

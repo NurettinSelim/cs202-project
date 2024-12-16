@@ -56,8 +56,6 @@ public class StaffServiceImpl extends BaseServiceImpl<Staff, Integer> implements
         }
         
         staff.setUserId(rs.getInt("user_id"));
-        staff.setUsername(rs.getString("username"));
-        staff.setPassword(rs.getString("password"));
         staff.setFirstName(rs.getString("first_name"));
         staff.setLastName(rs.getString("last_name"));
         staff.setPhone(rs.getString("phone"));
@@ -76,8 +74,6 @@ public class StaffServiceImpl extends BaseServiceImpl<Staff, Integer> implements
 
     @Override
     protected void setCreateStatement(PreparedStatement stmt, Staff staff) throws SQLException {
-        stmt.setString(1, staff.getUsername());
-        stmt.setString(2, staff.getPassword());
         stmt.setString(3, staff.getFirstName());
         stmt.setString(4, staff.getLastName());
         stmt.setString(5, staff.getPhone());
@@ -90,7 +86,6 @@ public class StaffServiceImpl extends BaseServiceImpl<Staff, Integer> implements
 
     @Override
     protected void setUpdateStatement(PreparedStatement stmt, Staff staff) throws SQLException {
-        stmt.setString(1, staff.getPassword());
         stmt.setString(2, staff.getFirstName());
         stmt.setString(3, staff.getLastName());
         stmt.setString(4, staff.getPhone());

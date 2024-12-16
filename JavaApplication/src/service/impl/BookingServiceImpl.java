@@ -4,12 +4,15 @@ import model.*;
 import service.BookingService;
 import util.DatabaseConnection;
 
+import java.lang.reflect.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Date;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class BookingServiceImpl extends BaseServiceImpl<Booking, Integer> implements BookingService {
@@ -28,30 +31,30 @@ public class BookingServiceImpl extends BaseServiceImpl<Booking, Integer> implem
     protected Booking mapRow(ResultSet rs) throws SQLException {
         Booking booking = new Booking();
         booking.setBookingId(rs.getInt("booking_id"));
-        
+
         // Map guest
         Guest guest = new Guest();
         guest.setUserId(rs.getInt("guest_id"));
         booking.setGuest(guest);
-        
+
         booking.setCheckInDate(rs.getDate("check_in_date"));
         booking.setCheckOutDate(rs.getDate("check_out_date"));
-        
+
         // Map status
         BookingStatus status = new BookingStatus();
         status.setStatusId(rs.getInt("status_id"));
         booking.setStatus(status);
-        
+
         booking.setTotalGuests(rs.getInt("total_guests"));
         booking.setCreatedAt(rs.getTimestamp("created_at"));
-        
+
         // Map confirmed by staff if exists
         if (rs.getObject("confirmed_by") != null) {
             Staff confirmedBy = new Staff();
             confirmedBy.setUserId(rs.getInt("confirmed_by"));
             booking.setConfirmedBy(confirmedBy);
         }
-        
+
         return booking;
     }
 
@@ -88,12 +91,12 @@ public class BookingServiceImpl extends BaseServiceImpl<Booking, Integer> implem
     public List<Booking> findByGuest(Guest guest) {
         String sql = "SELECT * FROM bookings WHERE guest_id = ? ORDER BY check_in_date DESC";
         List<Booking> bookings = new ArrayList<>();
-        
+
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, guest.getUserId());
             ResultSet rs = stmt.executeQuery();
-            
+
             while (rs.next()) {
                 bookings.add(mapRow(rs));
             }
@@ -106,16 +109,16 @@ public class BookingServiceImpl extends BaseServiceImpl<Booking, Integer> implem
     @Override
     public List<Booking> findByHotel(Hotel hotel) {
         String sql = "SELECT DISTINCT b.* FROM bookings b " +
-                    "JOIN booking_rooms br ON b.booking_id = br.booking_id " +
-                    "WHERE br.hotel_id = ? " +
-                    "ORDER BY b.check_in_date DESC";
+                "JOIN booking_rooms br ON b.booking_id = br.booking_id " +
+                "WHERE br.hotel_id = ? " +
+                "ORDER BY b.check_in_date DESC";
         List<Booking> bookings = new ArrayList<>();
-        
+
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, hotel.getHotelId());
             ResultSet rs = stmt.executeQuery();
-            
+
             while (rs.next()) {
                 bookings.add(mapRow(rs));
             }
@@ -128,17 +131,17 @@ public class BookingServiceImpl extends BaseServiceImpl<Booking, Integer> implem
     @Override
     public List<Booking> findByStatus(Hotel hotel, BookingStatus status) {
         String sql = "SELECT DISTINCT b.* FROM bookings b " +
-                    "JOIN booking_rooms br ON b.booking_id = br.booking_id " +
-                    "WHERE br.hotel_id = ? AND b.status_id = ? " +
-                    "ORDER BY b.check_in_date DESC";
+                "JOIN booking_rooms br ON b.booking_id = br.booking_id " +
+                "WHERE br.hotel_id = ? AND b.status_id = ? " +
+                "ORDER BY b.check_in_date DESC";
         List<Booking> bookings = new ArrayList<>();
-        
+
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, hotel.getHotelId());
             stmt.setInt(2, status.getStatusId());
             ResultSet rs = stmt.executeQuery();
-            
+
             while (rs.next()) {
                 bookings.add(mapRow(rs));
             }
@@ -151,19 +154,19 @@ public class BookingServiceImpl extends BaseServiceImpl<Booking, Integer> implem
     @Override
     public List<Booking> findByDateRange(Hotel hotel, Date startDate, Date endDate) {
         String sql = "SELECT DISTINCT b.* FROM bookings b " +
-                    "JOIN booking_rooms br ON b.booking_id = br.booking_id " +
-                    "WHERE br.hotel_id = ? " +
-                    "AND b.check_in_date <= ? AND b.check_out_date >= ? " +
-                    "ORDER BY b.check_in_date";
+                "JOIN booking_rooms br ON b.booking_id = br.booking_id " +
+                "WHERE br.hotel_id = ? " +
+                "AND b.check_in_date <= ? AND b.check_out_date >= ? " +
+                "ORDER BY b.check_in_date";
         List<Booking> bookings = new ArrayList<>();
-        
+
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, hotel.getHotelId());
             stmt.setDate(2, endDate);
             stmt.setDate(3, startDate);
             ResultSet rs = stmt.executeQuery();
-            
+
             while (rs.next()) {
                 bookings.add(mapRow(rs));
             }
@@ -176,18 +179,18 @@ public class BookingServiceImpl extends BaseServiceImpl<Booking, Integer> implem
     @Override
     public List<Booking> findCurrentBookings(Hotel hotel) {
         String sql = "SELECT DISTINCT b.* FROM bookings b " +
-                    "JOIN booking_rooms br ON b.booking_id = br.booking_id " +
-                    "WHERE br.hotel_id = ? " +
-                    "AND b.check_in_date <= CURRENT_DATE " +
-                    "AND b.check_out_date >= CURRENT_DATE " +
-                    "AND b.status_id IN (2, 3)"; // CONFIRMED or CHECKED_IN
+                "JOIN booking_rooms br ON b.booking_id = br.booking_id " +
+                "WHERE br.hotel_id = ? " +
+                "AND b.check_in_date <= CURRENT_DATE " +
+                "AND b.check_out_date >= CURRENT_DATE " +
+                "AND b.status_id IN (2, 3)"; // CONFIRMED or CHECKED_IN
         List<Booking> bookings = new ArrayList<>();
-        
+
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, hotel.getHotelId());
             ResultSet rs = stmt.executeQuery();
-            
+
             while (rs.next()) {
                 bookings.add(mapRow(rs));
             }
@@ -200,15 +203,15 @@ public class BookingServiceImpl extends BaseServiceImpl<Booking, Integer> implem
     @Override
     public void assignRoom(Integer bookingId, Room room, int guestsInRoom) {
         String sql = "INSERT INTO booking_rooms (booking_id, hotel_id, room_number, guests_in_room) " +
-                    "VALUES (?, ?, ?, ?)";
-        
+                "VALUES (?, ?, ?, ?)";
+
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, bookingId);
             stmt.setInt(2, room.getHotel().getHotelId());
             stmt.setString(3, room.getRoomNumber());
             stmt.setInt(4, guestsInRoom);
-            
+
             stmt.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("Error assigning room to booking", e);
@@ -218,12 +221,12 @@ public class BookingServiceImpl extends BaseServiceImpl<Booking, Integer> implem
     @Override
     public void updateStatus(Integer bookingId, BookingStatus newStatus) {
         String sql = "UPDATE bookings SET status_id = ? WHERE booking_id = ?";
-        
+
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, newStatus.getStatusId());
             stmt.setInt(2, bookingId);
-            
+
             int affected = stmt.executeUpdate();
             if (affected == 0) {
                 throw new RuntimeException("Booking not found");
@@ -248,21 +251,14 @@ public class BookingServiceImpl extends BaseServiceImpl<Booking, Integer> implem
     }
 
     @Override
-    public void cancel(Integer bookingId) {
-        BookingStatus cancelStatus = new BookingStatus();
-        cancelStatus.setStatusId(5); // CANCELLED
-        updateStatus(bookingId, cancelStatus);
-    }
-
-    @Override
     public boolean canBeCancelled(Integer bookingId) {
         String sql = "SELECT COUNT(*) FROM payments WHERE booking_id = ?";
-        
+
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, bookingId);
             ResultSet rs = stmt.executeQuery();
-            
+
             if (rs.next()) {
                 return rs.getInt(1) == 0;
             }
@@ -275,17 +271,17 @@ public class BookingServiceImpl extends BaseServiceImpl<Booking, Integer> implem
     @Override
     public double calculateTotalPrice(Integer bookingId) {
         String sql = "SELECT SUM(rt.base_price * DATEDIFF(b.check_out_date, b.check_in_date)) as total_price " +
-                    "FROM bookings b " +
-                    "JOIN booking_rooms br ON b.booking_id = br.booking_id " +
-                    "JOIN rooms r ON br.hotel_id = r.hotel_id AND br.room_number = r.room_number " +
-                    "JOIN room_types rt ON r.type_id = rt.type_id " +
-                    "WHERE b.booking_id = ?";
-        
+                "FROM bookings b " +
+                "JOIN booking_rooms br ON b.booking_id = br.booking_id " +
+                "JOIN rooms r ON br.hotel_id = r.hotel_id AND br.room_number = r.room_number " +
+                "JOIN room_types rt ON r.type_id = rt.type_id " +
+                "WHERE b.booking_id = ?";
+
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, bookingId);
             ResultSet rs = stmt.executeQuery();
-            
+
             if (rs.next()) {
                 return rs.getDouble("total_price");
             }
@@ -298,16 +294,16 @@ public class BookingServiceImpl extends BaseServiceImpl<Booking, Integer> implem
     @Override
     public List<Room> getAssignedRooms(Integer bookingId) {
         String sql = "SELECT r.* FROM rooms r " +
-                    "JOIN booking_rooms br ON r.hotel_id = br.hotel_id " +
-                    "AND r.room_number = br.room_number " +
-                    "WHERE br.booking_id = ?";
+                "JOIN booking_rooms br ON r.hotel_id = br.hotel_id " +
+                "AND r.room_number = br.room_number " +
+                "WHERE br.booking_id = ?";
         List<Room> rooms = new ArrayList<>();
-        
+
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, bookingId);
             ResultSet rs = stmt.executeQuery();
-            
+
             while (rs.next()) {
                 Room room = new Room();
                 room.setHotel(new Hotel(rs.getInt("hotel_id")));
@@ -321,4 +317,103 @@ public class BookingServiceImpl extends BaseServiceImpl<Booking, Integer> implem
         }
         return rooms;
     }
-} 
+
+    @Override
+    public void addNewBooking(int guestId, String checkInDate, String checkOutDate, int statusId, int totalGuests,
+            HashMap<Room, Integer> rooms) {
+        int bookingId = createBooking(guestId, checkInDate, checkOutDate, statusId, totalGuests);
+
+        for (Room room : rooms.keySet()) {
+            addRoomToBooking(bookingId, room.getHotel().getHotelId(), room.getRoomNumber(), rooms.get(room));
+        }
+    }
+
+    private int createBooking(int guestId, String checkInDate, String checkOutDate, int statusId, int totalGuests) {
+        String sql = """
+                    INSERT INTO bookings (
+                        guest_id, check_in_date,
+                        check_out_date, status_id, total_guests
+                    ) VALUES (?, ?, ?, ?, ?);
+                """;
+        int bookingId = 0;
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            stmt.setInt(1, guestId);
+            stmt.setString(2, checkInDate);
+            stmt.setString(3, checkOutDate);
+            stmt.setInt(4, statusId);
+            stmt.setInt(5, totalGuests);
+            stmt.executeUpdate();
+            ResultSet rs = stmt.getGeneratedKeys();
+            if (rs.next()) {
+                bookingId = rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error adding new booking", e);
+        }
+        return bookingId;
+
+    }
+
+    private void addRoomToBooking(int bookingId, int hotelId, String roomNumber, int guestsInRoom) {
+
+        String sql = """
+                INSERT INTO booking_rooms (
+                                booking_id, hotel_id, room_number, guests_in_room
+                            ) VALUES (?, ?, ?, ?);
+                """;
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, bookingId);
+            stmt.setInt(2, hotelId);
+            stmt.setString(3, roomNumber);
+            stmt.setInt(4, guestsInRoom);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Error adding room to booking", e);
+        }
+
+    }
+
+    @Override
+    public ArrayList<Booking> viewBookingsByGuest(int guestId) {
+        String sql = """
+                SELECT b.*, r.room_number, rt.base_price, h.hotel_name,
+                    CONCAT(u.first_name, ' ', u.last_name) as guest_name,
+                    bs.status_name,
+                    br.guests_in_room
+                FROM bookings b
+                JOIN booking_rooms br ON b.booking_id = br.booking_id
+                JOIN rooms r ON br.hotel_id = r.hotel_id AND br.room_number = r.room_number
+                JOIN room_types rt ON r.type_id = rt.type_id
+                JOIN hotels h ON r.hotel_id = h.hotel_id
+                JOIN users u ON b.guest_id = u.user_id
+                JOIN booking_statuses bs ON b.status_id = bs.status_id
+                WHERE b.guest_id = ?;
+                """;
+        ArrayList<Booking> bookings = new ArrayList<>();
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, guestId);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                bookings.add(mapRow(rs));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error finding bookings by guest", e);
+        }
+        return bookings;
+    }
+
+    @Override
+    public void cancel(Integer bookingId) {
+        String sql = "UPDATE bookings SET status_id = 5 WHERE booking_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, bookingId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Error cancelling booking", e);
+        }
+    }
+}

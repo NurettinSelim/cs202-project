@@ -12,9 +12,8 @@ public class Staff extends User {
     // Constructors
     public Staff() {}
 
-    public Staff(int userId, String username, String password, String firstName, String lastName, 
-                String phone, Timestamp createdAt, Hotel hotel, BigDecimal salary, Date hireDate) {
-        super(userId, username, password, firstName, lastName, phone, createdAt);
+    public Staff(int userId, String firstName, String lastName, String phone, Timestamp createdAt, Hotel hotel, BigDecimal salary, Date hireDate) {
+        super(userId, firstName, lastName, phone, createdAt);
         this.hotel = hotel;
         this.salary = salary;
         this.hireDate = hireDate;
@@ -49,7 +48,6 @@ public class Staff extends User {
     public String toString() {
         return "Staff{" +
                 "userId=" + getUserId() +
-                ", username='" + getUsername() + '\'' +
                 ", firstName='" + getFirstName() + '\'' +
                 ", lastName='" + getLastName() + '\'' +
                 ", hotel=" + hotel +

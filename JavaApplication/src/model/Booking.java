@@ -117,4 +117,12 @@ public class Booking {
                 ", bookingRooms=" + bookingRooms +
                 '}';
     }
+
+    public String toDisplayString() {
+        return "Booking ID: " + bookingId + "\n" +
+                "Guest: " + guest.getFirstName() + " " + guest.getLastName() + "\n" +
+                "Check-In Date: " + checkInDate + "\n" +
+                "Check-Out Date: " + checkOutDate + "\n" +
+                "Status: " + status.getStatusName() + "\n";
+    }
 } 

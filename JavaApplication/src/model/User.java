@@ -4,8 +4,6 @@ import java.sql.Timestamp;
 
 public class User {
     private int userId;
-    private String username;
-    private String password;
     private String firstName;
     private String lastName;
     private String phone;
@@ -14,10 +12,8 @@ public class User {
     // Constructors
     public User() {}
 
-    public User(int userId, String username, String password, String firstName, String lastName, String phone, Timestamp createdAt) {
+    public User(int userId, String firstName, String lastName, String phone, Timestamp createdAt) {
         this.userId = userId;
-        this.username = username;
-        this.password = password;
         this.firstName = firstName;
         this.lastName = lastName;
         this.phone = phone;
@@ -32,22 +28,7 @@ public class User {
     public void setUserId(int userId) {
         this.userId = userId;
     }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
+    
 
     public String getFirstName() {
         return firstName;
@@ -85,7 +66,6 @@ public class User {
     public String toString() {
         return "User{" +
                 "userId=" + userId +
-                ", username='" + username + '\'' +
                 ", firstName='" + firstName + '\'' +
                 ", lastName='" + lastName + '\'' +
                 ", phone='" + phone + '\'' +

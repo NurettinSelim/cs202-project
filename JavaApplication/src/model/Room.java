@@ -58,4 +58,24 @@ public class Room {
                 ", status=" + status +
                 '}';
     }
+
+    public String toDisplayString() {
+        StringBuilder sb = new StringBuilder();
+        if (roomNumber != null) {
+            sb.append("Room Number: ").append(roomNumber).append("\n");
+        }
+        if (roomType != null) {
+            sb.append("Room Type: ").append(roomType.getTypeName()).append("\n");
+            sb.append("Capacity: ").append(roomType.getCapacity()).append("\n");
+            sb.append("Bed Count: ").append(roomType.getBedCount()).append("\n");
+            sb.append("Base Price: ").append(roomType.getBasePrice()).append("\n");
+        }
+        if (status != null) {
+            sb.append("Status: ").append(status.getStatusName()).append("\n");
+        }
+        if (hotel != null) {
+            sb.append("Hotel: ").append(hotel.getHotelName()).append("\n");
+        }
+        return sb.toString();
+    }
 } 

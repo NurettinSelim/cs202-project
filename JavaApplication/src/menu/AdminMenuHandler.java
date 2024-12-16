@@ -3,30 +3,29 @@ package menu;
 import model.*;
 import service.*;
 import service.impl.*;
-import util.DatabaseConnection;
 
 import java.math.BigDecimal;
 import java.sql.Date;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Scanner;
+
+import controller.AdminMenuController;
 
 public class AdminMenuHandler {
-    private static final Scanner scanner = new Scanner(System.in);
-    private static final UserService userService = new UserServiceImpl();
-    private static final HotelService hotelService = new HotelServiceImpl();
-    private static final RoomService roomService = new RoomServiceImpl();
-    private static final BookingService bookingService = new BookingServiceImpl();
-    private static final StaffService staffService = new StaffServiceImpl();
-    private static final RoomTypeService roomTypeService = new RoomTypeServiceImpl();
+    private static AdminMenuController adminMenuController = new AdminMenuController();
+    private static RoomTypeService roomTypeService = new RoomTypeServiceImpl();
+    private static RoomService roomService = new RoomServiceImpl();
+    private static UserService userService = new UserServiceImpl();
+    private static BookingService bookingService = new BookingServiceImpl();
+    private static StaffService staffService = new StaffServiceImpl();
+
 
     public static void handleMenu() {
         while (true) {
-            displayMenu();
-            int choice = getUserChoice();
-
+            adminMenuController.displayMenu();
+            int choice = adminMenuController.getUserChoice();
+            
             switch (choice) {
                 case 1:
                     addRoom();
@@ -66,38 +65,15 @@ public class AdminMenuHandler {
         }
     }
 
-    private static void displayMenu() {
-        System.out.println("\n=== Administrator Menu ===");
-        System.out.println("1. Add Room");
-        System.out.println("2. Delete Room");
-        System.out.println("3. Manage Room Status");
-        System.out.println("4. View User Accounts");
-        System.out.println("5. Generate Revenue Report");
-        System.out.println("6. View All Booking Records");
-        System.out.println("7. View All Housekeeping Records");
-        System.out.println("8. Add User Account");
-        System.out.println("9. View Most Booked Room Types");
-        System.out.println("10. View All Employees");
-        System.out.println("11. Return to Main Menu");
-        System.out.print("Enter your choice: ");
-    }
 
-    private static int getUserChoice() {
-        try {
-            return Integer.parseInt(scanner.nextLine());
-        } catch (NumberFormatException e) {
-            return -1;
-        }
-    }
 
     private static void addRoom() {
         try {
             // Get the current admin's hotel
-            AdministratorStaff admin = (AdministratorStaff) userService.getCurrentUser();
+            AdministratorStaff admin = (AdministratorStaff) adminMenuController.getCurrentUser();
             Hotel hotel = admin.getHotel();
 
-            System.out.print("Enter room number: ");
-            String roomNumber = scanner.nextLine();
+            String roomNumber = adminMenuController.readInput("Enter room number: ");
 
             // Display available room types
             System.out.println("\nAvailable room types:");
@@ -108,8 +84,7 @@ public class AdminMenuHandler {
                     type.getBedCount(), type.getBasePrice());
             }
 
-            System.out.print("Enter room type ID: ");
-            int typeId = Integer.parseInt(scanner.nextLine());
+            int typeId = Integer.parseInt(adminMenuController.readInput("Enter room type ID: "));
 
             // Create and save the room
             Room room = new Room();
@@ -136,11 +111,10 @@ public class AdminMenuHandler {
 
     private static void deleteRoom() {
         try {
-            AdministratorStaff admin = (AdministratorStaff) userService.getCurrentUser();
+            AdministratorStaff admin = (AdministratorStaff) adminMenuController.getCurrentUser();
             Hotel hotel = admin.getHotel();
 
-            System.out.print("Enter room number: ");
-            String roomNumber = scanner.nextLine();
+            String roomNumber = adminMenuController.readInput("Enter room number: ");
 
             // Check if room exists and can be deleted
             if (roomService.isRoomAvailable(hotel, roomNumber, Date.valueOf(LocalDate.now()),
@@ -160,15 +134,14 @@ public class AdminMenuHandler {
             AdministratorStaff admin = (AdministratorStaff) userService.getCurrentUser();
             Hotel hotel = admin.getHotel();
 
-            System.out.print("Enter room number: ");
-            String roomNumber = scanner.nextLine();
+            String roomNumber = adminMenuController.readInput("Enter room number: ");
 
             System.out.println("Select new status:");
             System.out.println("1. Available");
             System.out.println("2. Maintenance");
             System.out.println("3. Out of Service");
 
-            int statusChoice = Integer.parseInt(scanner.nextLine());
+            int statusChoice = Integer.parseInt(adminMenuController.readInput("Enter status choice: "));
             RoomStatus newStatus = new RoomStatus();
             newStatus.setStatusId(statusChoice);
             switch (statusChoice) {
@@ -197,14 +170,12 @@ public class AdminMenuHandler {
         try {
             List<User> users = userService.findAll();
             System.out.println("\nUser Accounts:");
-            System.out.println("ID | Username | Role | Name | Phone");
+            System.out.println("ID | Name | Phone");
             System.out.println("--------------------------------");
 
             for (User user : users) {
-                System.out.printf("%d | %s | %s | %s %s | %s%n",
+                System.out.printf("%d | %s %s | %s%n",
                     user.getUserId(),
-                    user.getUsername(),
-                    userService.getUserRole(user),
                     user.getFirstName(),
                     user.getLastName(),
                     user.getPhone());
@@ -257,9 +228,10 @@ public class AdminMenuHandler {
             System.out.println("--------------------------------------------------------");
 
             for (Booking booking : bookings) {
-                System.out.printf("%10d | %s | %s | %s | %s | %s%n",
+                System.out.printf("%10d | %s %s | %s | %s | %s | %s%n",
                     booking.getBookingId(),
-                    booking.getGuest().getUsername(),
+                    booking.getGuest().getFirstName(),
+                    booking.getGuest().getLastName(),
                     booking.getBookingRooms().get(0).getRoom().getRoomNumber(),
                     booking.getCheckInDate(),
                     booking.getCheckOutDate(),
@@ -283,12 +255,13 @@ public class AdminMenuHandler {
             System.out.println("------------------------------------------------");
 
             for (HousekeepingSchedule schedule : schedules) {
-                System.out.printf("%11d | %s | %s | %s | %s%n",
+                System.out.printf("%11d | %s | %s | %s | %s %s%n",
                     schedule.getScheduleId(),
                     schedule.getRoom().getRoomNumber(),
                     schedule.getScheduledDate(),
                     schedule.getStatus().getStatusName(),
-                    schedule.getStaff().getUsername());
+                    schedule.getStaff().getFirstName(),
+                    schedule.getStaff().getLastName());
             }
         } catch (Exception e) {
             System.err.println("Error viewing housekeeping records: " + e.getMessage());
@@ -297,38 +270,13 @@ public class AdminMenuHandler {
 
     private static void addUserAccount() {
         try {
-            System.out.print("Enter username: ");
-            String username = scanner.nextLine();
-
-            if (!userService.isUsernameUnique(username)) {
-                System.out.println("Username already exists!");
-                return;
-            }
-
-            System.out.print("Enter password: ");
-            String password = scanner.nextLine();
-
-            System.out.print("Enter first name: ");
-            String firstName = scanner.nextLine();
-
-            System.out.print("Enter last name: ");
-            String lastName = scanner.nextLine();
-
-            System.out.print("Enter phone: ");
-            String phone = scanner.nextLine();
-
-            if (!userService.isPhoneNumberUnique(phone)) {
-                System.out.println("Phone number already exists!");
-                return;
-            }
-
-            System.out.print("Enter role (ADMINISTRATOR/RECEPTIONIST/HOUSEKEEPING): ");
-            String role = scanner.nextLine().toUpperCase();
+            String firstName = adminMenuController.readInput("Enter first name: ");
+            String lastName = adminMenuController.readInput("Enter last name: ");
+            String phone = adminMenuController.readInput("Enter phone: ");
+            String role = adminMenuController.readInput("Enter role (ADMINISTRATOR/RECEPTIONIST/HOUSEKEEPING): ").toUpperCase();
 
             // Create base user
             User user = new User();
-            user.setUsername(username);
-            user.setPassword(password); // In real app, this should be hashed
             user.setFirstName(firstName);
             user.setLastName(lastName);
             user.setPhone(phone);
@@ -355,8 +303,6 @@ public class AdminMenuHandler {
             }
 
             // Set staff properties
-            staff.setUsername(username);
-            staff.setPassword(password);
             staff.setFirstName(firstName);
             staff.setLastName(lastName);
             staff.setPhone(phone);
@@ -405,14 +351,12 @@ public class AdminMenuHandler {
 
             List<Staff> employees = staffService.findByHotelAndRole(hotel, "STAFF");
             System.out.println("\nAll Employees:");
-            System.out.println("ID | Username | Role | Name | Hire Date | Salary");
-            System.out.println("------------------------------------------------");
+            System.out.println("ID | Name | Hire Date | Salary");
+            System.out.println("--------------------------------");
 
             for (Staff employee : employees) {
-                System.out.printf("%d | %s | %s | %s %s | %s | $%.2f%n",
+                System.out.printf("%d | %s %s | %s | $%.2f%n",
                     employee.getUserId(),
-                    employee.getUsername(),
-                    userService.getUserRole(employee),
                     employee.getFirstName(),
                     employee.getLastName(),
                     employee.getHireDate(),

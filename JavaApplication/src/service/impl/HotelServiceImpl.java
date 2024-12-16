@@ -66,7 +66,7 @@ public class HotelServiceImpl extends BaseServiceImpl<Hotel, Integer> implements
             
             while (rs.next()) {
                 Room room = new Room();
-                room.setHotel(findById(hotelId).orElse(null));
+                room.setHotel(findById(hotelId));
                 room.setRoomNumber(rs.getString("room_number"));
                 // Set other room properties
                 rooms.add(room);
@@ -92,12 +92,11 @@ public class HotelServiceImpl extends BaseServiceImpl<Hotel, Integer> implements
             while (rs.next()) {
                 Staff staff = new Staff();
                 staff.setUserId(rs.getInt("user_id"));
-                staff.setUsername(rs.getString("username"));
                 staff.setFirstName(rs.getString("first_name"));
                 staff.setLastName(rs.getString("last_name"));
                 staff.setPhone(rs.getString("phone"));
                 staff.setCreatedAt(rs.getTimestamp("created_at"));
-                staff.setHotel(findById(hotelId).orElse(null));
+                staff.setHotel(findById(hotelId));
                 staff.setSalary(rs.getBigDecimal("salary"));
                 staff.setHireDate(rs.getDate("hire_date"));
                 staffList.add(staff);

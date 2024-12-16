@@ -215,7 +215,7 @@ public class ReceptionistMenuHandler {
     private static void viewBookings() {
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(
-                     "SELECT b.booking_id, u.username, r.room_number, " +
+                     "SELECT b.booking_id, u.first_name, u.last_name, r.room_number, " +
                              "b.check_in_date, b.check_out_date, b.status " +
                              "FROM bookings b " +
                              "JOIN users u ON b.guest_id = u.user_id " +
@@ -230,7 +230,7 @@ public class ReceptionistMenuHandler {
             while (rs.next()) {
                 System.out.printf("%10d | %s | %s | %s | %s | %s%n",
                         rs.getInt("booking_id"),
-                        rs.getString("username"),
+                        rs.getString("first_name") + " " + rs.getString("last_name"),
                         rs.getString("room_number"),
                         rs.getDate("check_in_date"),
                         rs.getDate("check_out_date"),
@@ -315,13 +315,13 @@ public class ReceptionistMenuHandler {
     private static void viewHousekeepers() {
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(
-                     "SELECT u.user_id, u.username, " +
+                     "SELECT u.user_id, u.first_name, u.last_name, " +
                              "COUNT(h.schedule_id) as pending_tasks " +
                              "FROM users u " +
                              "LEFT JOIN housekeeping_schedule h ON u.user_id = h.housekeeper_id " +
                              "AND h.status = 'PENDING' " +
                              "WHERE u.role = 'HOUSEKEEPING' " +
-                             "GROUP BY u.user_id, u.username")) {
+                             "GROUP BY u.user_id, u.first_name, u.last_name")) {
 
             ResultSet rs = stmt.executeQuery();
             System.out.println("\nHousekeepers and Their Workload:");
@@ -331,7 +331,7 @@ public class ReceptionistMenuHandler {
             while (rs.next()) {
                 System.out.printf("%d | %s | %d%n",
                         rs.getInt("user_id"),
-                        rs.getString("username"),
+                        rs.getString("first_name") + " " + rs.getString("last_name"),
                         rs.getInt("pending_tasks"));
             }
         } catch (SQLException e) {
