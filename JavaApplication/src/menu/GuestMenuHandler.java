@@ -109,12 +109,8 @@ public class GuestMenuHandler {
                             roomPanel.setLayout(new BoxLayout(roomPanel, BoxLayout.X_AXIS));
 
                             JCheckBox roomCheckBox = new JCheckBox(room.toDisplayString());
-                            JLabel maxGuestsLabel = new JLabel("Max Guests: " + room.getRoomType().getCapacity());
 
                             roomPanel.add(roomCheckBox);
-                            roomPanel.add(Box.createHorizontalStrut(10));
-                            roomPanel.add(maxGuestsLabel);
-
                             roomPanels.put(room, roomPanel);
                             roomSelectionPanel.add(roomPanel);
                         }
