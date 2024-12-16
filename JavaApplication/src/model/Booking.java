@@ -119,10 +119,17 @@ public class Booking {
     }
 
     public String toDisplayString() {
-        return "Booking ID: " + bookingId + "\n" +
-                "Guest: " + guest.getFirstName() + " " + guest.getLastName() + "\n" +
-                "Check-In Date: " + checkInDate + "\n" +
-                "Check-Out Date: " + checkOutDate + "\n" +
-                "Status: " + status.getStatusName() + "\n";
+        StringBuilder sb = new StringBuilder();
+        sb.append("Booking ID: ").append(bookingId).append("\n");
+        sb.append("Guest: ").append(guest.getFirstName()).append(" ").append(guest.getLastName()).append("\n");
+        sb.append("Check-In Date: ").append(checkInDate).append("\n");
+        sb.append("Check-Out Date: ").append(checkOutDate).append("\n");
+        sb.append("Status: ").append(status.getStatusName()).append("\n");
+        if (bookingRooms != null) {
+            for (BookingRoom bookingRoom : bookingRooms) {
+                sb.append("Room: ").append(bookingRoom.getRoom().getRoomNumber()).append("\n");
+            }
+        }
+        return sb.toString();
     }
 } 

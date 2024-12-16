@@ -2,10 +2,13 @@ package menu;
 
 import controller.GuestMenuController;
 import model.Booking;
+import model.BookingRoom;
 import model.Room;
 import util.UIComponents;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -70,11 +73,12 @@ public class GuestMenuHandler {
             JTextField totalGuestsField = new JTextField(10);
             formPanel.add(totalGuestsField);
 
-            // Create room selection panel (initially empty)
-            JPanel roomSelectionPanel = new JPanel();
-            roomSelectionPanel.setLayout(new BoxLayout(roomSelectionPanel, BoxLayout.Y_AXIS));
-            JScrollPane scrollPane = new JScrollPane(roomSelectionPanel);
-            scrollPane.setPreferredSize(new Dimension(300, 150));
+            // Create room selection table
+            String[] columnNames = { "Select", "Room Number", "Room Type", "Capacity", "Price" };
+            DefaultTableModel model = new DefaultTableModel(columnNames, 0);
+            JTable roomsTable = UIComponents.createTable(model, true, 0);
+            JScrollPane scrollPane = new JScrollPane(roomsTable);
+            scrollPane.setPreferredSize(new Dimension(500, 200));
             scrollPane.setVisible(false);
 
             // Add panels to main panel
@@ -83,7 +87,6 @@ public class GuestMenuHandler {
 
             // Button panel
             JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-            HashMap<Room, JPanel> roomPanels = new HashMap<>();
             JButton listAvailableRoomsButton = UIComponents.createStyledButton("List Available Rooms");
             listAvailableRoomsButton.addActionListener(e -> {
                 try {
@@ -92,9 +95,7 @@ public class GuestMenuHandler {
                         return;
                     }
 
-                    roomPanels.clear();
-                    roomSelectionPanel.removeAll();
-
+                    model.setRowCount(0);
                     ArrayList<Room> availableRoomsList = guestMenuController.viewAvailableRooms(
                             checkInDateField.getText(),
                             checkOutDateField.getText());
@@ -104,17 +105,17 @@ public class GuestMenuHandler {
                         scrollPane.setVisible(false);
                     } else {
                         for (Room room : availableRoomsList) {
-                            JPanel roomPanel = new JPanel();
-                            roomPanel.setLayout(new BoxLayout(roomPanel, BoxLayout.X_AXIS));
-
-                            JCheckBox roomCheckBox = new JCheckBox(room.toDisplayString());
-                            roomPanel.add(roomCheckBox);
-                            roomPanels.put(room, roomPanel);
-                            roomSelectionPanel.add(roomPanel);
+                            model.addRow(new Object[] {
+                                false,
+                                room.getRoomNumber(),
+                                room.getRoomType().getTypeName(),
+                                room.getRoomType().getCapacity(),
+                                room.getRoomType().getBasePrice()
+                            });
                         }
                         scrollPane.setVisible(true);
-                        roomSelectionPanel.revalidate();
-                        roomSelectionPanel.repaint();
+                        panel.revalidate();
+                        panel.repaint();
                     }
                     dialog.pack();
                 } catch (Exception ex) {
@@ -136,21 +137,26 @@ public class GuestMenuHandler {
                     int totalGuestsRequested;
                     int totalCapacityOfSelectedRooms = 0;
                     HashMap<Room, Integer> selectedRooms = new HashMap<>();
+                    ArrayList<Room> availableRooms = guestMenuController.viewAvailableRooms(
+                            checkInDateField.getText(),
+                            checkOutDateField.getText());
+
                     try {
                         totalGuestsRequested = Integer.parseInt(totalGuestsField.getText());
                         if (totalGuestsRequested <= 0) {
                             UIComponents.showWarning(dialog, "Total guests must be greater than 0");
                             return;
                         }
-                        for (Room room : roomPanels.keySet()) {
-                            JPanel roomPanel = roomPanels.get(room);
-                            JCheckBox roomCheckBox = (JCheckBox) roomPanel.getComponent(0);
-                            if (roomCheckBox.isSelected()) {
+
+                        for (int i = 0; i < model.getRowCount(); i++) {
+                            boolean isSelected = (boolean) model.getValueAt(i, 0);
+                            if (isSelected) {
+                                Room room = availableRooms.get(i);
                                 selectedRooms.put(room, room.getRoomType().getCapacity());
                                 totalCapacityOfSelectedRooms += room.getRoomType().getCapacity();
                             }
                         }
- 
+
                         if (selectedRooms.isEmpty()) {
                             UIComponents.showWarning(dialog, "Please select at least one room");
                             return;
@@ -195,6 +201,7 @@ public class GuestMenuHandler {
             JDialog dialog = UIComponents.createStyledDialog(parentFrame, "Available Rooms", UIComponents.DIALOG_SIZE);
             JPanel panel = UIComponents.createMainPanel();
 
+            // Create date input panel
             JPanel datePanel = UIComponents.createFormPanel(2, 2);
             datePanel.add(new JLabel("Check-in Date:"));
             JTextField checkInDateField = new JTextField(10);
@@ -204,6 +211,14 @@ public class GuestMenuHandler {
             JTextField checkOutDateField = new JTextField(10);
             datePanel.add(checkOutDateField);
 
+            // Create table to display available rooms
+            String[] columnNames = { "Room Number", "Room Type", "Capacity", "Base Price", "Status" };
+            DefaultTableModel model = new DefaultTableModel(columnNames, 0);
+            JTable roomsTable = UIComponents.createTable(model, false);
+            JScrollPane scrollPane = new JScrollPane(roomsTable);
+            scrollPane.setPreferredSize(new Dimension(500, 300));
+            scrollPane.setVisible(false);
+
             JButton searchButton = UIComponents.createStyledButton("Search");
             searchButton.addActionListener(e -> {
                 try {
@@ -212,31 +227,40 @@ public class GuestMenuHandler {
                         return;
                     }
 
+                    model.setRowCount(0);
                     ArrayList<Room> availableRooms = guestMenuController.viewAvailableRooms(
                             checkInDateField.getText(),
                             checkOutDateField.getText());
 
                     if (availableRooms.isEmpty()) {
                         UIComponents.showInfo(dialog, "No rooms available for the selected dates");
+                        scrollPane.setVisible(false);
                     } else {
-                        StringBuilder roomListString = new StringBuilder();
                         for (Room room : availableRooms) {
-                            roomListString.append(room.toDisplayString()).append("\n");
+                            model.addRow(new Object[] {
+                                room.getRoomNumber(),
+                                room.getRoomType().getTypeName(),
+                                room.getRoomType().getCapacity(),
+                                room.getRoomType().getBasePrice(),
+                                "Available"
+                            });
                         }
-                        JTextArea roomList = new JTextArea(roomListString.toString());
-                        roomList.setEditable(false);
-                        panel.add(new JScrollPane(roomList), BorderLayout.CENTER);
-                        dialog.revalidate();
+                        scrollPane.setVisible(true);
+                        panel.revalidate();
+                        panel.repaint();
                     }
+                    dialog.pack();
                 } catch (Exception ex) {
                     UIComponents.handleException(dialog, ex, "Failed to search for available rooms");
                 }
             });
 
+            // Layout panels
             JPanel searchPanel = new JPanel(new BorderLayout());
             searchPanel.add(datePanel, BorderLayout.CENTER);
             searchPanel.add(searchButton, BorderLayout.SOUTH);
             panel.add(searchPanel, BorderLayout.NORTH);
+            panel.add(scrollPane, BorderLayout.CENTER);
 
             JButton closeButton = UIComponents.createStyledButton("Close");
             closeButton.addActionListener(e -> dialog.dispose());
@@ -253,21 +277,30 @@ public class GuestMenuHandler {
         try {
             JDialog dialog = UIComponents.createStyledDialog(parentFrame, "My Bookings", UIComponents.DIALOG_SIZE);
             JPanel panel = UIComponents.createMainPanel();
-
-            JTextArea bookingsList = new JTextArea();
-            bookingsList.setEditable(false);
-            panel.add(new JScrollPane(bookingsList), BorderLayout.CENTER);
+            String[] columnNames = { "Booking ID", "Check-in Date", "Check-out Date", "Status",
+                    "Total Guests", "Created At", "Confirmed By" };
+            DefaultTableModel model = new DefaultTableModel(columnNames, 0);
+            JTable bookingsTable = UIComponents.createTable(model, false);
+            JScrollPane scrollPane = new JScrollPane(bookingsTable);
+            panel.add(scrollPane, BorderLayout.CENTER);
 
             try {
                 ArrayList<Booking> bookings = guestMenuController.viewMyBookings();
-                String bookingsString = "";
-                for (Booking booking : bookings) {
-                    bookingsString += booking.toDisplayString() + "\n";
-                }
-                if (bookingsString.isEmpty()) {
+
+                if (bookings.isEmpty()) {
                     UIComponents.showInfo(dialog, "You have no bookings");
                 } else {
-                    bookingsList.setText(bookingsString);
+                    for (Booking booking : bookings) {
+                        model.addRow(new Object[] {
+                                booking.getBookingId(),
+                                booking.getCheckInDate(),
+                                booking.getCheckOutDate(),
+                                booking.getStatus().getStatusName(),
+                                booking.getTotalGuests(),
+                                booking.getCreatedAt(),
+                                booking.getConfirmedBy(),
+                        });
+                    }
                 }
             } catch (Exception e) {
                 UIComponents.handleException(dialog, e, "Failed to load bookings");
@@ -290,13 +323,69 @@ public class GuestMenuHandler {
                     UIComponents.SMALL_DIALOG_SIZE);
             JPanel panel = UIComponents.createMainPanel();
 
-            // TODO: Add booking cancellation form
-            panel.add(new JLabel("Booking cancellation form will be implemented here"), BorderLayout.CENTER);
+            // Create table to display active bookings
+            String[] columnNames = { "Booking ID", "Check-in Date", "Check-out Date", "Status", "Total Guests" };
+            DefaultTableModel model = new DefaultTableModel(columnNames, 0);
+            JTable bookingsTable = UIComponents.createTable(model, false);
+            JScrollPane scrollPane = new JScrollPane(bookingsTable);
+            panel.add(scrollPane, BorderLayout.CENTER);
+
+            // Load active bookings
+            try {
+                ArrayList<Booking> bookings = guestMenuController.viewMyBookings();
+
+                if (bookings.isEmpty()) {
+                    UIComponents.showInfo(dialog, "You have no bookings to cancel");
+                } else {
+                    for (Booking booking : bookings) {
+                        model.addRow(new Object[] {
+                                booking.getBookingId(),
+                                booking.getCheckInDate(),
+                                booking.getCheckOutDate(),
+                                booking.getStatus().getStatusName(),
+                                booking.getTotalGuests()
+                        });
+                    }
+                }
+            } catch (Exception e) {
+                UIComponents.handleException(dialog, e, "Failed to load bookings");
+            }
+
+            // Button panel
+            JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+            
+            JButton cancelBookingButton = UIComponents.createStyledButton("Cancel Selected Booking");
+            cancelBookingButton.addActionListener(e -> {
+                int selectedRow = bookingsTable.getSelectedRow();
+                if (selectedRow == -1) {
+                    UIComponents.showWarning(dialog, "Please select a booking to cancel");
+                    return;
+                }
+
+                int bookingId = (int) bookingsTable.getValueAt(selectedRow, 0);
+                int confirm = JOptionPane.showConfirmDialog(
+                        dialog,
+                        "Are you sure you want to cancel this booking?",
+                        "Confirm Cancellation",
+                        JOptionPane.YES_NO_OPTION);
+
+                if (confirm == JOptionPane.YES_OPTION) {
+                    try {
+                        guestMenuController.cancelBooking(bookingId);
+                        UIComponents.showInfo(dialog, "Booking cancelled successfully");
+                        dialog.dispose();
+                    } catch (Exception ex) {
+                        UIComponents.handleException(dialog, ex, "Failed to cancel booking");
+                    }
+                }
+            });
+            buttonPanel.add(cancelBookingButton);
 
             JButton closeButton = UIComponents.createStyledButton("Close");
             closeButton.addActionListener(e -> dialog.dispose());
-            panel.add(closeButton, BorderLayout.SOUTH);
+            buttonPanel.add(closeButton);
 
+            panel.add(buttonPanel, BorderLayout.SOUTH);
             dialog.add(panel);
             dialog.setVisible(true);
         } catch (Exception e) {

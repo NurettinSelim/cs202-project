@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 
 import model.Booking;
-import model.Guest;
 import model.Room;
 import service.BookingService;
 import service.impl.BookingServiceImpl;
@@ -43,8 +42,7 @@ public class GuestMenuController extends BaseControlller {
         return myBookings;
     }
 
-    public void cancelBooking() {
-        int bookingId = Integer.parseInt(readInput("Enter booking ID to cancel: "));
+    public void cancelBooking(int bookingId) {
         bookingService.cancel(bookingId);
     }
 }

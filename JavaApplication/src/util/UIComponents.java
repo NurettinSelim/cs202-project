@@ -1,7 +1,10 @@
 package util;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+
 import java.awt.*;
+import java.util.Vector;
 
 public final class UIComponents {
     public static final Font TITLE_FONT = new Font("Arial", Font.BOLD, 18);
@@ -145,5 +148,61 @@ public final class UIComponents {
         JPanel panel = new JPanel(new GridLayout(rows, cols, SMALL_PADDING, SMALL_PADDING));
         panel.setBorder(BorderFactory.createEmptyBorder(PADDING, PADDING, PADDING, PADDING));
         return panel;
+    }
+
+    public static JTable createTable(DefaultTableModel model, boolean hasCheckboxColumn) {
+        return createTable(model, hasCheckboxColumn, -1);
+    }
+
+    public static JTable createTable(DefaultTableModel model, boolean hasCheckboxColumn, int checkboxColumnIndex) {
+        // Create a custom table model if there's a checkbox column
+        if (hasCheckboxColumn) {
+            DefaultTableModel newModel = new DefaultTableModel(model.getDataVector(), getColumnIdentifiers(model)) {
+                @Override
+                public Class<?> getColumnClass(int column) {
+                    return column == checkboxColumnIndex ? Boolean.class : Object.class;
+                }
+
+                @Override
+                public boolean isCellEditable(int row, int column) {
+                    return column == checkboxColumnIndex;
+                }
+            };
+            model = newModel;
+        }
+
+        JTable table = new JTable(model);
+        
+        // Set table properties
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+        table.getTableHeader().setReorderingAllowed(false);
+        table.setRowHeight(25);
+        table.setIntercellSpacing(new Dimension(10, 5));
+        
+        // Style the header
+        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
+        table.getTableHeader().setBackground(new Color(240, 240, 240));
+        table.getTableHeader().setForeground(Color.BLACK);
+        
+        // Style the grid
+        table.setShowGrid(true);
+        table.setGridColor(new Color(230, 230, 230));
+        
+        // Set column sizes for checkbox if present
+        if (hasCheckboxColumn && checkboxColumnIndex >= 0) {
+            table.getColumnModel().getColumn(checkboxColumnIndex).setMaxWidth(50);
+            table.getColumnModel().getColumn(checkboxColumnIndex).setMinWidth(50);
+        }
+        
+        return table;
+    }
+
+    private static Vector<String> getColumnIdentifiers(DefaultTableModel model) {
+        Vector<String> identifiers = new Vector<>();
+        for (int i = 0; i < model.getColumnCount(); i++) {
+            identifiers.add(model.getColumnName(i));
+        }
+        return identifiers;
     }
 } 

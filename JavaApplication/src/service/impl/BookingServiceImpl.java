@@ -55,6 +55,7 @@ public class BookingServiceImpl extends BaseServiceImpl<Booking, Integer> implem
             booking.setConfirmedBy(confirmedBy);
         }
 
+
         return booking;
     }
 
@@ -378,18 +379,11 @@ public class BookingServiceImpl extends BaseServiceImpl<Booking, Integer> implem
     @Override
     public ArrayList<Booking> viewBookingsByGuest(int guestId) {
         String sql = """
-                SELECT b.*, r.room_number, rt.base_price, h.hotel_name,
-                    CONCAT(u.first_name, ' ', u.last_name) as guest_name,
-                    bs.status_name,
-                    br.guests_in_room
+                SELECT b.*,
+                    bs.status_name
                 FROM bookings b
-                JOIN booking_rooms br ON b.booking_id = br.booking_id
-                JOIN rooms r ON br.hotel_id = r.hotel_id AND br.room_number = r.room_number
-                JOIN room_types rt ON r.type_id = rt.type_id
-                JOIN hotels h ON r.hotel_id = h.hotel_id
-                JOIN users u ON b.guest_id = u.user_id
-                JOIN booking_statuses bs ON b.status_id = bs.status_id
-                WHERE b.guest_id = ?;
+                        JOIN booking_statuses bs ON b.status_id = bs.status_id
+                WHERE b.guest_id = ?
                 """;
         ArrayList<Booking> bookings = new ArrayList<>();
         try (Connection conn = DatabaseConnection.getConnection();
@@ -397,7 +391,9 @@ public class BookingServiceImpl extends BaseServiceImpl<Booking, Integer> implem
             stmt.setInt(1, guestId);
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
-                bookings.add(mapRow(rs));
+                Booking booking = mapRow(rs);
+                booking.setStatus(new BookingStatus(rs.getInt("status_id"), rs.getString("status_name")));
+                bookings.add(booking);
             }
         } catch (SQLException e) {
             throw new RuntimeException("Error finding bookings by guest", e);
