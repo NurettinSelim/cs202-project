@@ -36,7 +36,7 @@ public class UserServiceImpl extends BaseServiceImpl<User, Integer> implements U
 
     @Override
     protected String getCreateSQL() {
-        return String.format("INSERT INTO %s (first_name, last_name, phone, created_at, role) VALUES (?, ?, ?, CURRENT_TIMESTAMP, 'GUEST')", getTableName());
+        return String.format("INSERT INTO %s (first_name, last_name, phone, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)", getTableName());
     }
 
     @Override
