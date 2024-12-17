@@ -12,9 +12,12 @@ public final class UIComponents {
     public static final Font LABEL_FONT = new Font("Arial", Font.PLAIN, 12);
 
     public static final Dimension BUTTON_SIZE = new Dimension(200, 40);
+
     public static final Dimension DIALOG_SIZE = new Dimension(500, 400);
     public static final Dimension SMALL_DIALOG_SIZE = new Dimension(400, 300);
-
+    public static final Dimension MEDIUM_DIALOG_SIZE = new Dimension(600, 400);
+    public static final Dimension LARGE_DIALOG_SIZE = new Dimension(800, 600);
+    
     public static final int PADDING = 20;
     public static final int SMALL_PADDING = 10;
     public static final int TINY_PADDING = 5;

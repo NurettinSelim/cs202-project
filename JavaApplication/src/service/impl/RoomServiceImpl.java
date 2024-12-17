@@ -49,6 +49,11 @@ public class RoomServiceImpl extends BaseServiceImpl<Room, String> implements Ro
     }
 
     @Override
+    protected String getCreateSQL() {
+        return String.format("INSERT INTO %s (hotel_id, room_number, type_id, status_id) VALUES (?, ?, ?, ?)", getTableName());
+    }
+
+    @Override
     protected void setCreateStatement(PreparedStatement stmt, Room room) throws SQLException {
         stmt.setInt(1, room.getHotel().getHotelId());
         stmt.setString(2, room.getRoomNumber());

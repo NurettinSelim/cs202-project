@@ -56,6 +56,11 @@ public class HousekeepingScheduleServiceImpl extends BaseServiceImpl<Housekeepin
     }
 
     @Override
+    protected String getCreateSQL() {
+        return String.format("INSERT INTO %s (hotel_id, room_number, staff_id, scheduled_date, status_id) VALUES (?, ?, ?, ?, ?)", getTableName());
+    }
+
+    @Override
     protected void setCreateStatement(PreparedStatement stmt, HousekeepingSchedule schedule) throws SQLException {
         stmt.setInt(1, schedule.getRoom().getHotel().getHotelId());
         stmt.setString(2, schedule.getRoom().getRoomNumber());

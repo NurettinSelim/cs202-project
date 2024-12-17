@@ -35,10 +35,15 @@ public class UserServiceImpl extends BaseServiceImpl<User, Integer> implements U
     }
 
     @Override
+    protected String getCreateSQL() {
+        return String.format("INSERT INTO %s (first_name, last_name, phone, created_at, role) VALUES (?, ?, ?, CURRENT_TIMESTAMP, 'GUEST')", getTableName());
+    }
+
+    @Override
     protected void setCreateStatement(PreparedStatement stmt, User user) throws SQLException {
-        stmt.setString(3, user.getFirstName());
-        stmt.setString(4, user.getLastName());
-        stmt.setString(5, user.getPhone());
+        stmt.setString(1, user.getFirstName());
+        stmt.setString(2, user.getLastName());
+        stmt.setString(3, user.getPhone());
     }
 
     @Override

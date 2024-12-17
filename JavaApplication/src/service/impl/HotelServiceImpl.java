@@ -36,6 +36,11 @@ public class HotelServiceImpl extends BaseServiceImpl<Hotel, Integer> implements
     }
 
     @Override
+    protected String getCreateSQL() {
+        return String.format("INSERT INTO %s (hotel_name, address, phone) VALUES (?, ?, ?)", getTableName());
+    }
+
+    @Override
     protected void setCreateStatement(PreparedStatement stmt, Hotel hotel) throws SQLException {
         stmt.setString(1, hotel.getHotelName());
         stmt.setString(2, hotel.getAddress());

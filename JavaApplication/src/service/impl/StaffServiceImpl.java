@@ -73,15 +73,19 @@ public class StaffServiceImpl extends BaseServiceImpl<Staff, Integer> implements
     }
 
     @Override
+    protected String getCreateSQL() {
+        return String.format("INSERT INTO %s (first_name, last_name, phone, created_at, role, hotel_id, salary, hire_date) VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, ?, ?, ?)", getTableName());
+    }
+
+    @Override
     protected void setCreateStatement(PreparedStatement stmt, Staff staff) throws SQLException {
-        stmt.setString(3, staff.getFirstName());
-        stmt.setString(4, staff.getLastName());
-        stmt.setString(5, staff.getPhone());
-        stmt.setTimestamp(6, staff.getCreatedAt());
-        stmt.setString(7, getStaffRole(staff));
-        stmt.setInt(8, staff.getHotel().getHotelId());
-        stmt.setBigDecimal(9, staff.getSalary());
-        stmt.setDate(10, new Date(staff.getHireDate().getTime()));
+        stmt.setString(1, staff.getFirstName());
+        stmt.setString(2, staff.getLastName());
+        stmt.setString(3, staff.getPhone());
+        stmt.setString(4, getStaffRole(staff));
+        stmt.setInt(5, staff.getHotel().getHotelId());
+        stmt.setBigDecimal(6, staff.getSalary());
+        stmt.setDate(7, new Date(staff.getHireDate().getTime()));
     }
 
     @Override
@@ -213,6 +217,57 @@ public class StaffServiceImpl extends BaseServiceImpl<Staff, Integer> implements
             }
         } catch (SQLException e) {
             throw new RuntimeException("Error transferring staff", e);
+        }
+    }
+
+    @Override
+    public List<StaffWithRole> findAllEmployeesWithRoles(int hotelId) {
+        String sql = """
+                SELECT u.*, 'ADMINISTRATOR' as role, s.hire_date, s.salary
+                FROM users u
+                JOIN staff s ON u.user_id = s.user_id
+                JOIN administrator_staff a ON u.user_id = a.user_id
+                WHERE s.hotel_id = ?
+
+                UNION
+
+                SELECT u.*, 'RECEPTIONIST' as role, s.hire_date, s.salary
+                FROM users u
+                JOIN staff s ON u.user_id = s.user_id
+                JOIN receptionist_staff r ON u.user_id = r.user_id
+                WHERE s.hotel_id = ?
+
+                UNION
+
+                SELECT u.*, 'HOUSEKEEPING' as role, s.hire_date, s.salary
+                FROM users u
+                JOIN staff s ON u.user_id = s.user_id
+                JOIN housekeeping_staff h ON u.user_id = h.user_id
+                WHERE s.hotel_id = ?
+
+                ORDER BY role, last_name, first_name""";
+        
+        List<StaffWithRole> staffList = new ArrayList<>();
+        try (Connection conn = DatabaseConnection.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, hotelId);
+            stmt.setInt(2, hotelId);
+            stmt.setInt(3, hotelId);
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                staffList.add(new StaffWithRole(
+                    rs.getString("first_name"),
+                    rs.getString("last_name"),
+                    rs.getString("phone"),
+                    rs.getString("role"),
+                    rs.getDate("hire_date"),
+                    rs.getBigDecimal("salary")
+                ));
+            }
+            return staffList;
+        } catch (SQLException e) {
+            throw new RuntimeException("Error finding employees with roles", e);
         }
     }
 } 

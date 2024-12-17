@@ -2,6 +2,7 @@ import model.User;
 import service.*;
 import service.impl.*;
 import menu.GuestMenuHandler;
+import menu.AdminMenuHandler;
 import util.UIComponents;
 
 import javax.swing.*;
@@ -152,8 +153,9 @@ public final class Main {
     }
 
     private static void setupAdminPanel(JPanel panel) {
-        // TODO: Implement admin-specific UI components
-        panel.add(new JLabel("Admin Menu - Implementation pending"));
+        AdminMenuHandler adminMenuHandler = new AdminMenuHandler((JFrame) SwingUtilities.getWindowAncestor(panel));
+        panel.setLayout(new BorderLayout());
+        panel.add(adminMenuHandler.getMainPanel(), BorderLayout.CENTER);
     }
 
     private static void setupReceptionistPanel(JPanel panel) {

@@ -42,6 +42,11 @@ public class RoomTypeServiceImpl extends BaseServiceImpl<RoomType, Integer> impl
     }
 
     @Override
+    protected String getCreateSQL() {
+        return String.format("INSERT INTO %s (hotel_id, type_name, base_price, capacity, bed_count) VALUES (?, ?, ?, ?, ?)", getTableName());
+    }
+
+    @Override
     protected void setCreateStatement(PreparedStatement stmt, RoomType roomType) throws SQLException {
         stmt.setInt(1, roomType.getHotel().getHotelId());
         stmt.setString(2, roomType.getTypeName());

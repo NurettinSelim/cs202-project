@@ -1,369 +1,431 @@
 package menu;
 
+import controller.AdminMenuController;
 import model.*;
+import util.UIComponents;
 import service.*;
 import service.impl.*;
 
-import java.math.BigDecimal;
-import java.sql.Date;
-import java.sql.Timestamp;
-import java.time.LocalDate;
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.sql.SQLException;
 import java.util.List;
 
-import controller.AdminMenuController;
-
 public class AdminMenuHandler {
-    private static AdminMenuController adminMenuController = new AdminMenuController();
-    private static RoomTypeService roomTypeService = new RoomTypeServiceImpl();
-    private static RoomService roomService = new RoomServiceImpl();
-    private static UserService userService = new UserServiceImpl();
-    private static BookingService bookingService = new BookingServiceImpl();
-    private static StaffService staffService = new StaffServiceImpl();
+    private final AdminMenuController adminMenuController;
+    private JPanel mainPanel;
+    private final JFrame parentFrame;
 
-
-    public static void handleMenu() {
-        while (true) {
-            adminMenuController.displayMenu();
-            int choice = adminMenuController.getUserChoice();
-            
-            switch (choice) {
-                case 1:
-                    addRoom();
-                    break;
-                case 2:
-                    deleteRoom();
-                    break;
-                case 3:
-                    manageRoomStatus();
-                    break;
-                case 4:
-                    viewUserAccounts();
-                    break;
-                case 5:
-                    generateRevenueReport();
-                    break;
-                case 6:
-                    viewBookingRecords();
-                    break;
-                case 7:
-                    viewHousekeepingRecords();
-                    break;
-                case 8:
-                    addUserAccount();
-                    break;
-                case 9:
-                    viewMostBookedRoomTypes();
-                    break;
-                case 10:
-                    viewAllEmployees();
-                    break;
-                case 11:
-                    return;
-                default:
-                    System.out.println("Invalid choice. Please try again.");
-            }
-        }
+    public AdminMenuHandler(JFrame parentFrame) {
+        this.parentFrame = parentFrame;
+        this.adminMenuController = new AdminMenuController();
     }
 
+    public JPanel getMainPanel() {
+        if (mainPanel == null) {
+            createMainPanel();
+        }
+        return mainPanel;
+    }
 
+    private void createMainPanel() {
+        mainPanel = UIComponents.createButtonPanel();
+        GridBagConstraints gbc = UIComponents.createGBC();
 
-    private static void addRoom() {
+        // Create buttons for all admin functionalities
+        JButton addRoomBtn = UIComponents.createStyledButton("Add Room");
+        JButton deleteRoomBtn = UIComponents.createStyledButton("Delete Room");
+        JButton manageRoomStatusBtn = UIComponents.createStyledButton("Manage Room Status");
+        JButton addUserBtn = UIComponents.createStyledButton("Add User Account");
+        JButton viewUsersBtn = UIComponents.createStyledButton("View User Accounts");
+        JButton revenueReportBtn = UIComponents.createStyledButton("Generate Revenue Report");
+        JButton viewBookingsBtn = UIComponents.createStyledButton("View All Booking Records");
+        JButton viewHousekeepingBtn = UIComponents.createStyledButton("View All Housekeeping Records");
+        JButton viewMostBookedBtn = UIComponents.createStyledButton("View Most Booked Room Types");
+        JButton viewEmployeesBtn = UIComponents.createStyledButton("View All Employees");
+
+        // Add action listeners
+        addRoomBtn.addActionListener(e -> showAddRoomDialog());
+        deleteRoomBtn.addActionListener(e -> showDeleteRoomDialog());
+        manageRoomStatusBtn.addActionListener(e -> showManageRoomStatusDialog());
+        addUserBtn.addActionListener(e -> showAddUserDialog());
+        viewUsersBtn.addActionListener(e -> showUserAccounts());
+        revenueReportBtn.addActionListener(e -> showRevenueReport());
+        viewBookingsBtn.addActionListener(e -> showAllBookings());
+        viewHousekeepingBtn.addActionListener(e -> showHousekeepingRecords());
+        viewMostBookedBtn.addActionListener(e -> showMostBookedRoomTypes());
+        viewEmployeesBtn.addActionListener(e -> showAllEmployees());
+
+        // Add components to panel
+        mainPanel.add(addRoomBtn, gbc);
+        mainPanel.add(deleteRoomBtn, gbc);
+        mainPanel.add(manageRoomStatusBtn, gbc);
+        mainPanel.add(addUserBtn, gbc);
+        mainPanel.add(viewUsersBtn, gbc);
+        mainPanel.add(revenueReportBtn, gbc);
+        mainPanel.add(viewBookingsBtn, gbc);
+        mainPanel.add(viewHousekeepingBtn, gbc);
+        mainPanel.add(viewMostBookedBtn, gbc);
+        mainPanel.add(viewEmployeesBtn, gbc);
+    }
+
+    private void showAddRoomDialog() {
+        JDialog dialog = UIComponents.createStyledDialog(parentFrame, "Add New Room", UIComponents.SMALL_DIALOG_SIZE);
+        JPanel panel = UIComponents.createMainPanel();
+
+        // Form fields
+        JTextField roomNumberField = new JTextField(10);
+        
+        // Create combo boxes for room types and statuses
+        DefaultComboBoxModel<RoomType> roomTypeModel = new DefaultComboBoxModel<>();
+        JComboBox<RoomType> roomTypeCombo = new JComboBox<>(roomTypeModel);
+        roomTypeCombo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                if (value instanceof RoomType) {
+                    RoomType type = (RoomType) value;
+                    value = type.getTypeName() + " (Capacity: " + type.getCapacity() + ", Price: $" + type.getBasePrice() + ")";
+                }
+                return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            }
+        });
+
+        DefaultComboBoxModel<RoomStatus> roomStatusModel = new DefaultComboBoxModel<>();
+        JComboBox<RoomStatus> roomStatusCombo = new JComboBox<>(roomStatusModel);
+        roomStatusCombo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                if (value instanceof RoomStatus) {
+                    value = ((RoomStatus) value).getStatusName();
+                }
+                return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            }
+        });
+
+        // Populate combo boxes
         try {
-            // Get the current admin's hotel
-            AdministratorStaff admin = (AdministratorStaff) adminMenuController.getCurrentUser();
-            Hotel hotel = admin.getHotel();
-
-            String roomNumber = adminMenuController.readInput("Enter room number: ");
-
-            // Display available room types
-            System.out.println("\nAvailable room types:");
-            List<RoomType> roomTypes = roomTypeService.findByHotel(hotel);
+            List<RoomType> roomTypes = adminMenuController.getRoomTypes();
             for (RoomType type : roomTypes) {
-                System.out.printf("%d. %s (Capacity: %d, Beds: %d, Price: $%.2f)%n",
-                    type.getTypeId(), type.getTypeName(), type.getCapacity(),
-                    type.getBedCount(), type.getBasePrice());
+                roomTypeModel.addElement(type);
             }
 
-            int typeId = Integer.parseInt(adminMenuController.readInput("Enter room type ID: "));
-
-            // Create and save the room
-            Room room = new Room();
-            room.setHotel(hotel);
-            room.setRoomNumber(roomNumber);
-            room.setRoomType(roomTypes.stream()
-                .filter(t -> t.getTypeId() == typeId)
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Invalid room type ID")));
-            
-            // Set initial status as available
-            RoomStatus status = new RoomStatus();
-            status.setStatusId(1); // Assuming 1 is "Available"
-            status.setStatusName("AVAILABLE");
-            room.setStatus(status);
-
-            roomService.create(room);
-            System.out.println("Room added successfully!");
-
-        } catch (Exception e) {
-            System.err.println("Error adding room: " + e.getMessage());
-        }
-    }
-
-    private static void deleteRoom() {
-        try {
-            AdministratorStaff admin = (AdministratorStaff) adminMenuController.getCurrentUser();
-            Hotel hotel = admin.getHotel();
-
-            String roomNumber = adminMenuController.readInput("Enter room number: ");
-
-            // Check if room exists and can be deleted
-            if (roomService.isRoomAvailable(hotel, roomNumber, Date.valueOf(LocalDate.now()),
-                    Date.valueOf(LocalDate.now().plusDays(1)))) {
-                roomService.delete(roomNumber);
-                System.out.println("Room deleted successfully!");
-            } else {
-                System.out.println("Room cannot be deleted: It has active bookings or is not available.");
+            List<RoomStatus> roomStatuses = adminMenuController.getRoomStatuses();
+            for (RoomStatus status : roomStatuses) {
+                roomStatusModel.addElement(status);
             }
-        } catch (Exception e) {
-            System.err.println("Error deleting room: " + e.getMessage());
+        } catch (SQLException ex) {
+            UIComponents.showError(dialog, "Error loading room types and statuses: " + ex.getMessage());
+            dialog.dispose();
+            return;
         }
-    }
 
-    private static void manageRoomStatus() {
-        try {
-            AdministratorStaff admin = (AdministratorStaff) userService.getCurrentUser();
-            Hotel hotel = admin.getHotel();
+        // Layout
+        panel.setLayout(new GridLayout(4, 2, 5, 5));
+        panel.add(new JLabel("Room Number:"));
+        panel.add(roomNumberField);
+        panel.add(new JLabel("Room Type:"));
+        panel.add(roomTypeCombo);
+        panel.add(new JLabel("Status:"));
+        panel.add(roomStatusCombo);
 
-            String roomNumber = adminMenuController.readInput("Enter room number: ");
-
-            System.out.println("Select new status:");
-            System.out.println("1. Available");
-            System.out.println("2. Maintenance");
-            System.out.println("3. Out of Service");
-
-            int statusChoice = Integer.parseInt(adminMenuController.readInput("Enter status choice: "));
-            RoomStatus newStatus = new RoomStatus();
-            newStatus.setStatusId(statusChoice);
-            switch (statusChoice) {
-                case 1:
-                    newStatus.setStatusName("AVAILABLE");
-                    break;
-                case 2:
-                    newStatus.setStatusName("MAINTENANCE");
-                    break;
-                case 3:
-                    newStatus.setStatusName("OUT_OF_SERVICE");
-                    break;
-                default:
-                    System.out.println("Invalid status choice.");
+        JButton submitButton = UIComponents.createStyledButton("Add Room");
+        submitButton.addActionListener(e -> {
+            try {
+                RoomType selectedType = (RoomType) roomTypeCombo.getSelectedItem();
+                RoomStatus selectedStatus = (RoomStatus) roomStatusCombo.getSelectedItem();
+                
+                if (selectedType == null || selectedStatus == null) {
+                    UIComponents.showError(dialog, "Please select both room type and status");
                     return;
-            }
+                }
 
-            roomService.updateRoomStatus(hotel, roomNumber, newStatus);
-            System.out.println("Room status updated successfully!");
-        } catch (Exception e) {
-            System.err.println("Error updating room status: " + e.getMessage());
-        }
+                adminMenuController.addRoom(
+                    Integer.parseInt(roomNumberField.getText()),
+                    selectedType.getTypeId(),
+                    selectedStatus.getStatusId()
+                );
+                UIComponents.showInfo(dialog, "Room added successfully!");
+                dialog.dispose();
+            } catch (NumberFormatException ex) {
+                UIComponents.showError(dialog, "Please enter a valid room number");
+            } catch (SQLException ex) {
+                UIComponents.showError(dialog, "Error adding room: " + ex.getMessage());
+            }
+        });
+
+        panel.add(submitButton);
+        dialog.add(panel);
+        dialog.setVisible(true);
     }
 
-    private static void viewUserAccounts() {
-        try {
-            List<User> users = userService.findAll();
-            System.out.println("\nUser Accounts:");
-            System.out.println("ID | Name | Phone");
-            System.out.println("--------------------------------");
+    private void showDeleteRoomDialog() {
+        JDialog dialog = UIComponents.createStyledDialog(parentFrame, "Delete Room", UIComponents.SMALL_DIALOG_SIZE);
+        JPanel panel = UIComponents.createMainPanel();
 
+        JTextField roomNumberField = new JTextField(10);
+
+        panel.setLayout(new GridLayout(2, 2, 5, 5));
+        panel.add(new JLabel("Room Number:"));
+        panel.add(roomNumberField);
+
+        JButton deleteButton = UIComponents.createStyledButton("Delete Room");
+        deleteButton.addActionListener(e -> {
+            try {
+                if (UIComponents.showConfirmDialog(dialog, 
+                    "Are you sure you want to delete this room?\nThis action cannot be undone if the room has no active bookings or pending tasks.", 
+                    "Confirm Deletion")) {
+                    adminMenuController.deleteRoom(
+                        Integer.parseInt(roomNumberField.getText())
+                    );
+                    UIComponents.showInfo(dialog, "Room deleted successfully!");
+                    dialog.dispose();
+                }
+            } catch (SQLException ex) {
+                UIComponents.showError(dialog, "Error deleting room: " + ex.getMessage());
+            }
+        });
+
+        panel.add(deleteButton);
+        dialog.add(panel);
+        dialog.setVisible(true);
+    }
+
+    private void showManageRoomStatusDialog() {
+        JDialog dialog = UIComponents.createStyledDialog(parentFrame, "Manage Room Status", UIComponents.SMALL_DIALOG_SIZE);
+        JPanel panel = UIComponents.createMainPanel();
+
+        JTextField roomNumberField = new JTextField(10);
+        JTextField statusIdField = new JTextField(10);
+
+        panel.setLayout(new GridLayout(3, 2, 5, 5));
+        panel.add(new JLabel("Room Number:"));
+        panel.add(roomNumberField);
+        panel.add(new JLabel("New Status ID:"));
+        panel.add(statusIdField);
+
+        JButton updateButton = UIComponents.createStyledButton("Update Status");
+        updateButton.addActionListener(e -> {
+            try {
+                adminMenuController.manageRoomStatus(
+                    Integer.parseInt(roomNumberField.getText()),
+                    Integer.parseInt(statusIdField.getText())
+                );
+                UIComponents.showInfo(dialog, "Room status updated successfully!");
+                dialog.dispose();
+            } catch (SQLException ex) {
+                UIComponents.showError(dialog, "Error updating room status: " + ex.getMessage());
+            }
+        });
+
+        panel.add(updateButton);
+        dialog.add(panel);
+        dialog.setVisible(true);
+    }
+
+    private void showAddUserDialog() {
+        JDialog dialog = UIComponents.createStyledDialog(parentFrame, "Add User Account", UIComponents.SMALL_DIALOG_SIZE);
+        JPanel panel = UIComponents.createMainPanel();
+
+        JTextField firstNameField = new JTextField(20);
+        JTextField lastNameField = new JTextField(20);
+        JTextField phoneField = new JTextField(20);
+
+        panel.setLayout(new GridLayout(4, 2, 5, 5));
+        panel.add(new JLabel("First Name:"));
+        panel.add(firstNameField);
+        panel.add(new JLabel("Last Name:"));
+        panel.add(lastNameField);
+        panel.add(new JLabel("Phone:"));
+        panel.add(phoneField);
+
+        JButton addButton = UIComponents.createStyledButton("Add User");
+        addButton.addActionListener(e -> {
+            try {
+                adminMenuController.addUser(
+                    firstNameField.getText(),
+                    lastNameField.getText(),
+                    phoneField.getText()
+                );
+                UIComponents.showInfo(dialog, "User added successfully!");
+                dialog.dispose();
+            } catch (SQLException ex) {
+                UIComponents.showError(dialog, "Error adding user: " + ex.getMessage());
+            }
+        });
+
+        panel.add(addButton);
+        dialog.add(panel);
+        dialog.setVisible(true);
+    }
+
+    private void showUserAccounts() {
+        JDialog dialog = UIComponents.createStyledDialog(parentFrame, "User Accounts", UIComponents.LARGE_DIALOG_SIZE);
+        JPanel panel = UIComponents.createMainPanel();
+
+        String[] columns = {"User ID", "First Name", "Last Name", "Phone", "Created At"};
+        DefaultTableModel model = new DefaultTableModel(columns, 0);
+        JTable table = UIComponents.createTable(model, false);
+        JScrollPane scrollPane = new JScrollPane(table);
+
+        try {
+            List<User> users = adminMenuController.viewUserAccounts();
             for (User user : users) {
-                System.out.printf("%d | %s %s | %s%n",
+                model.addRow(new Object[]{
                     user.getUserId(),
                     user.getFirstName(),
                     user.getLastName(),
-                    user.getPhone());
+                    user.getPhone(),
+                    user.getCreatedAt()
+                });
             }
-        } catch (Exception e) {
-            System.err.println("Error viewing user accounts: " + e.getMessage());
+        } catch (SQLException ex) {
+            UIComponents.showError(dialog, "Error loading users: " + ex.getMessage());
         }
+
+        panel.add(scrollPane);
+        dialog.add(panel);
+        dialog.setVisible(true);
     }
 
-    private static void generateRevenueReport() {
+    private void showRevenueReport() {
+        JDialog dialog = UIComponents.createStyledDialog(parentFrame, "Revenue Report", UIComponents.DIALOG_SIZE);
+        JPanel panel = UIComponents.createMainPanel();
+
+        String[] columns = {"Total Bookings", "Total Revenue", "Average Revenue per Booking"};
+        DefaultTableModel model = new DefaultTableModel(columns, 0);
+        JTable table = UIComponents.createTable(model, false);
+        JScrollPane scrollPane = new JScrollPane(table);
+
         try {
-            AdministratorStaff admin = (AdministratorStaff) userService.getCurrentUser();
-            Hotel hotel = admin.getHotel();
-
-            System.out.println("\nRevenue Report");
-            System.out.println("------------------------");
-
-            // Get all bookings for the hotel
-            List<Booking> bookings = bookingService.findByHotel(hotel);
-            
-            double totalRevenue = 0;
-            int completedBookings = 0;
-
-            for (Booking booking : bookings) {
-                if (booking.getStatus().getStatusName().equals("COMPLETED")) {
-                    totalRevenue += bookingService.calculateTotalPrice(booking.getBookingId());
-                    completedBookings++;
-                }
-            }
-
-            double avgBookingValue = completedBookings > 0 ? totalRevenue / completedBookings : 0;
-
-            System.out.printf("Total Revenue: $%.2f%n", totalRevenue);
-            System.out.printf("Total Completed Bookings: %d%n", completedBookings);
-            System.out.printf("Average Booking Value: $%.2f%n", avgBookingValue);
-
-        } catch (Exception e) {
-            System.err.println("Error generating revenue report: " + e.getMessage());
+            RevenueService.RevenueReport report = adminMenuController.generateRevenueReport();
+            model.addRow(new Object[]{
+                report.totalBookings(),
+                report.totalRevenue(),
+                report.averageRevenuePerBooking()
+            });
+        } catch (SQLException ex) {
+            UIComponents.showError(dialog, "Error generating revenue report: " + ex.getMessage());
         }
+
+        panel.add(scrollPane);
+        dialog.add(panel);
+        dialog.setVisible(true);
     }
 
-    private static void viewBookingRecords() {
+    private void showAllBookings() {
+        JDialog dialog = UIComponents.createStyledDialog(parentFrame, "All Booking Records", UIComponents.LARGE_DIALOG_SIZE);
+        JPanel panel = UIComponents.createMainPanel();
+
+        String[] columns = {"Booking ID", "Guest", "Check In", "Check Out", "Status", "Total Guests"};
+        DefaultTableModel model = new DefaultTableModel(columns, 0);
+        JTable table = UIComponents.createTable(model, false);
+        JScrollPane scrollPane = new JScrollPane(table);
+
         try {
-            AdministratorStaff admin = (AdministratorStaff) userService.getCurrentUser();
-            Hotel hotel = admin.getHotel();
-
-            List<Booking> bookings = bookingService.findByHotel(hotel);
-            System.out.println("\nBooking Records:");
-            System.out.println("Booking ID | Guest | Room | Check-in | Check-out | Status");
-            System.out.println("--------------------------------------------------------");
-
+            List<Booking> bookings = adminMenuController.viewBookingRecords();
             for (Booking booking : bookings) {
-                System.out.printf("%10d | %s %s | %s | %s | %s | %s%n",
+                model.addRow(new Object[]{
                     booking.getBookingId(),
-                    booking.getGuest().getFirstName(),
-                    booking.getGuest().getLastName(),
-                    booking.getBookingRooms().get(0).getRoom().getRoomNumber(),
+                    booking.getGuest().getFirstName() + " " + booking.getGuest().getLastName(),
                     booking.getCheckInDate(),
                     booking.getCheckOutDate(),
-                    booking.getStatus().getStatusName());
+                    booking.getStatus().getStatusName(),
+                    booking.getTotalGuests()
+                });
             }
-        } catch (Exception e) {
-            System.err.println("Error viewing booking records: " + e.getMessage());
+        } catch (SQLException ex) {
+            UIComponents.showError(dialog, "Error loading bookings: " + ex.getMessage());
         }
+
+        panel.add(scrollPane);
+        dialog.add(panel);
+        dialog.setVisible(true);
     }
 
-    private static void viewHousekeepingRecords() {
+    private void showHousekeepingRecords() {
+        JDialog dialog = UIComponents.createStyledDialog(parentFrame, "Housekeeping Records", UIComponents.LARGE_DIALOG_SIZE);
+        JPanel panel = UIComponents.createMainPanel();
+
+        String[] columns = {"Schedule ID", "Room", "Staff", "Date", "Status"};
+        DefaultTableModel model = new DefaultTableModel(columns, 0);
+        JTable table = UIComponents.createTable(model, false);
+        JScrollPane scrollPane = new JScrollPane(table);
+
         try {
-            AdministratorStaff admin = (AdministratorStaff) userService.getCurrentUser();
-            Hotel hotel = admin.getHotel();
-
-            HousekeepingScheduleService scheduleService = new HousekeepingScheduleServiceImpl();
-            List<HousekeepingSchedule> schedules = scheduleService.findByHotel(hotel);
-
-            System.out.println("\nHousekeeping Records:");
-            System.out.println("Schedule ID | Room | Date | Status | Housekeeper");
-            System.out.println("------------------------------------------------");
-
+            List<HousekeepingSchedule> schedules = adminMenuController.viewHousekeepingRecords();
             for (HousekeepingSchedule schedule : schedules) {
-                System.out.printf("%11d | %s | %s | %s | %s %s%n",
+                model.addRow(new Object[]{
                     schedule.getScheduleId(),
                     schedule.getRoom().getRoomNumber(),
+                    schedule.getStaff().getFirstName() + " " + schedule.getStaff().getLastName(),
                     schedule.getScheduledDate(),
-                    schedule.getStatus().getStatusName(),
-                    schedule.getStaff().getFirstName(),
-                    schedule.getStaff().getLastName());
+                    schedule.getStatus().getStatusName()
+                });
             }
-        } catch (Exception e) {
-            System.err.println("Error viewing housekeeping records: " + e.getMessage());
+        } catch (SQLException ex) {
+            UIComponents.showError(dialog, "Error loading housekeeping records: " + ex.getMessage());
         }
+
+        panel.add(scrollPane);
+        dialog.add(panel);
+        dialog.setVisible(true);
     }
 
-    private static void addUserAccount() {
+    private void showMostBookedRoomTypes() {
+        JDialog dialog = UIComponents.createStyledDialog(parentFrame, "Most Booked Room Types", UIComponents.DIALOG_SIZE);
+        JPanel panel = UIComponents.createMainPanel();
+
+        String[] columns = {"Room Type", "Total Bookings", "Total Revenue", "Average Occupancy Rate"};
+        DefaultTableModel model = new DefaultTableModel(columns, 0);
+        JTable table = UIComponents.createTable(model, false);
+        JScrollPane scrollPane = new JScrollPane(table);
+
         try {
-            String firstName = adminMenuController.readInput("Enter first name: ");
-            String lastName = adminMenuController.readInput("Enter last name: ");
-            String phone = adminMenuController.readInput("Enter phone: ");
-            String role = adminMenuController.readInput("Enter role (ADMINISTRATOR/RECEPTIONIST/HOUSEKEEPING): ").toUpperCase();
-
-            // Create base user
-            User user = new User();
-            user.setFirstName(firstName);
-            user.setLastName(lastName);
-            user.setPhone(phone);
-            user.setCreatedAt(new Timestamp(System.currentTimeMillis()));
-
-            // Create specific staff type based on role
-            Staff staff;
-            AdministratorStaff admin = (AdministratorStaff) userService.getCurrentUser();
-            Hotel hotel = admin.getHotel();
-
-            switch (role) {
-                case "ADMINISTRATOR":
-                    staff = new AdministratorStaff();
-                    break;
-                case "RECEPTIONIST":
-                    staff = new ReceptionistStaff();
-                    break;
-                case "HOUSEKEEPING":
-                    staff = new HousekeepingStaff();
-                    break;
-                default:
-                    System.out.println("Invalid role!");
-                    return;
+            List<RevenueService.RoomTypeStats> stats = adminMenuController.viewMostBookedRoomTypes();
+            for (RevenueService.RoomTypeStats stat : stats) {
+                model.addRow(new Object[]{
+                    stat.typeName(),
+                    stat.totalBookings(),
+                    stat.totalRevenue(),
+                    String.format("%.2f%%", stat.occupancyRate())
+                });
             }
-
-            // Set staff properties
-            staff.setFirstName(firstName);
-            staff.setLastName(lastName);
-            staff.setPhone(phone);
-            staff.setCreatedAt(user.getCreatedAt());
-            staff.setHotel(hotel);
-            staff.setSalary(new BigDecimal("0.00")); // Initial salary
-            staff.setHireDate(Date.valueOf(LocalDate.now()));
-
-            // Save the staff member
-            staffService.create(staff);
-            System.out.println("User account added successfully!");
-
-        } catch (Exception e) {
-            System.err.println("Error adding user account: " + e.getMessage());
+        } catch (SQLException ex) {
+            UIComponents.showError(dialog, "Error loading most booked room types: " + ex.getMessage());
         }
+
+        panel.add(scrollPane);
+        dialog.add(panel);
+        dialog.setVisible(true);
     }
 
-    private static void viewMostBookedRoomTypes() {
+    private void showAllEmployees() {
+        JDialog dialog = UIComponents.createStyledDialog(parentFrame, "All Employees", UIComponents.DIALOG_SIZE);
+        JPanel panel = UIComponents.createMainPanel();
+
+        String[] columns = {"Name", "Role", "Phone", "Hire Date", "Salary"};
+        DefaultTableModel model = new DefaultTableModel(columns, 0);
+        JTable table = UIComponents.createTable(model, false);
+        JScrollPane scrollPane = new JScrollPane(table);
+
         try {
-            AdministratorStaff admin = (AdministratorStaff) userService.getCurrentUser();
-            Hotel hotel = admin.getHotel();
-
-            RoomTypeService roomTypeService = new RoomTypeServiceImpl();
-            List<RoomType> popularTypes = roomTypeService.findMostPopularTypes(hotel, 5);
-
-            System.out.println("\nMost Booked Room Types:");
-            System.out.println("Room Type | Occupancy Rate | Total Bookings");
-            System.out.println("----------------------------------------");
-
-            for (RoomType type : popularTypes) {
-                double occupancyRate = roomTypeService.getOccupancyRateByType(type.getTypeId());
-                System.out.printf("%s | %.2f%% | %d bookings%n",
-                    type.getTypeName(),
-                    occupancyRate * 100,
-                    type.getCapacity());
+            List<StaffService.StaffWithRole> employees = adminMenuController.viewAllEmployees();
+            for (StaffService.StaffWithRole employee : employees) {
+                model.addRow(new Object[]{
+                    employee.firstName() + " " + employee.lastName(),
+                    employee.role(),
+                    employee.phone(),
+                    employee.hireDate(),
+                    employee.salary()
+                });
             }
-        } catch (Exception e) {
-            System.err.println("Error viewing most booked room types: " + e.getMessage());
+        } catch (SQLException ex) {
+            UIComponents.showError(dialog, "Error loading employees: " + ex.getMessage());
         }
-    }
 
-    private static void viewAllEmployees() {
-        try {
-            AdministratorStaff admin = (AdministratorStaff) userService.getCurrentUser();
-            Hotel hotel = admin.getHotel();
-
-            List<Staff> employees = staffService.findByHotelAndRole(hotel, "STAFF");
-            System.out.println("\nAll Employees:");
-            System.out.println("ID | Name | Hire Date | Salary");
-            System.out.println("--------------------------------");
-
-            for (Staff employee : employees) {
-                System.out.printf("%d | %s %s | %s | $%.2f%n",
-                    employee.getUserId(),
-                    employee.getFirstName(),
-                    employee.getLastName(),
-                    employee.getHireDate(),
-                    employee.getSalary());
-            }
-        } catch (Exception e) {
-            System.err.println("Error viewing all employees: " + e.getMessage());
-        }
+        panel.add(scrollPane);
+        dialog.add(panel);
+        dialog.setVisible(true);
     }
 }

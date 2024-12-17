@@ -15,10 +15,11 @@ public abstract class BaseServiceImpl<T, ID> implements BaseService<T, ID> {
     protected abstract T mapRow(ResultSet rs) throws SQLException;
     protected abstract void setCreateStatement(PreparedStatement stmt, T entity) throws SQLException;
     protected abstract void setUpdateStatement(PreparedStatement stmt, T entity) throws SQLException;
+    protected abstract String getCreateSQL();
 
     @Override
     public T create(T entity) {
-        String sql = String.format("INSERT INTO %s VALUES (?)", getTableName());
+        String sql = getCreateSQL();
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             setCreateStatement(stmt, entity);

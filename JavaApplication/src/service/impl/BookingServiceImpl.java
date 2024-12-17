@@ -60,17 +60,21 @@ public class BookingServiceImpl extends BaseServiceImpl<Booking, Integer> implem
     }
 
     @Override
+    protected String getCreateSQL() {
+        return String.format("INSERT INTO %s (guest_id, check_in_date, check_out_date, status_id, total_guests, created_at, confirmed_by) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)", getTableName());
+    }
+
+    @Override
     protected void setCreateStatement(PreparedStatement stmt, Booking booking) throws SQLException {
         stmt.setInt(1, booking.getGuest().getUserId());
         stmt.setDate(2, booking.getCheckInDate());
         stmt.setDate(3, booking.getCheckOutDate());
         stmt.setInt(4, booking.getStatus().getStatusId());
         stmt.setInt(5, booking.getTotalGuests());
-        stmt.setTimestamp(6, booking.getCreatedAt());
         if (booking.getConfirmedBy() != null) {
-            stmt.setInt(7, booking.getConfirmedBy().getUserId());
+            stmt.setInt(6, booking.getConfirmedBy().getUserId());
         } else {
-            stmt.setNull(7, java.sql.Types.INTEGER);
+            stmt.setNull(6, java.sql.Types.INTEGER);
         }
     }
 
