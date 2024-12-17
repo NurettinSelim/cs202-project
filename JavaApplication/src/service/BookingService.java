@@ -1,43 +1,27 @@
 package service;
 
-import model.Booking;
-import model.BookingStatus;
-import model.Guest;
-import model.Hotel;
-import model.Room;
-import java.sql.Date;
+import model.*;
+import service.impl.BookingServiceImpl;
+
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
-public interface BookingService extends BaseService<Booking, Integer> {
-    List<Booking> findByGuest(Guest guest);
-
-    List<Booking> findByHotel(Hotel hotel);
-
-    List<Booking> findByStatus(Hotel hotel, BookingStatus status);
-
-    List<Booking> findByDateRange(Hotel hotel, Date startDate, Date endDate);
-
-    List<Booking> findCurrentBookings(Hotel hotel);
-
-    void assignRoom(Integer bookingId, Room room, int guestsInRoom);
-
-    boolean canBeCancelled(Integer bookingId);
-
-    double calculateTotalPrice(Integer bookingId);
-
-    List<Room> getAssignedRooms(Integer bookingId);
-
-    void addNewBooking(int guestId, String checkInDate, String checkOutDate, int statusId, int totalGuests,
-            HashMap<Room, Integer> rooms);
-
-    ArrayList<Booking> viewBookingsByGuest(int guestId);
-
-    void cancel(Integer bookingId);
-     
-    ArrayList<Booking> findAllWithGuest();
+public interface BookingService {
+    Booking findById(int bookingId);
 
     void updateBooking(Booking booking);
 
+    ArrayList<Booking> findByGuestId(int guestId);
+
+    ArrayList<Booking> findAllWithGuest();
+
+    void cancelBooking(int bookingId);
+
+    void processPayment(int bookingId);
+
+    ArrayList<BookingServiceImpl.RoomTypeStats> getMostBookedRoomTypes(int hotelId, String checkInDate,
+            String checkOutDate);
+
+    void addNewBooking(int guestId, String checkInDate, String checkOutDate, int statusId, int totalGuests,
+            HashMap<Room, Integer> rooms);
 }
