@@ -57,7 +57,7 @@ public class HousekeepingScheduleServiceImpl extends BaseServiceImpl<Housekeepin
 
     @Override
     protected String getCreateSQL() {
-        return String.format("INSERT INTO %s (hotel_id, room_number, staff_id, scheduled_date, status_id) VALUES (?, ?, ?, ?, ?)", getTableName());
+        return String.format("INSERT INTO %s (hotel_id, room_number, staff_id, scheduled_date, status_id, created_by) VALUES (?, ?, ?, ?, ?, ?)", getTableName());
     }
 
     @Override
@@ -67,6 +67,7 @@ public class HousekeepingScheduleServiceImpl extends BaseServiceImpl<Housekeepin
         stmt.setInt(3, schedule.getStaff().getUserId());
         stmt.setDate(4, schedule.getScheduledDate());
         stmt.setInt(5, schedule.getStatus().getStatusId());
+        stmt.setInt(6, schedule.getCreatedBy().getUserId());
     }
 
     @Override
@@ -80,9 +81,9 @@ public class HousekeepingScheduleServiceImpl extends BaseServiceImpl<Housekeepin
     @Override
     public List<HousekeepingSchedule> findByHotel(Hotel hotel) {
         String sql = "SELECT hs.*, u.first_name, u.last_name, " +
-                "hks.status_name FROM housekeeping_schedule hs " +
+                "rs.status_name FROM housekeeping_schedule hs " +
                 "JOIN users u ON hs.staff_id = u.user_id " +
-                "JOIN housekeeping_statuses hks ON hs.status_id = hks.status_id " +
+                "JOIN room_statuses rs ON hs.status_id = rs.status_id " +
                 "WHERE hs.hotel_id = ? " +
                 "ORDER BY hs.scheduled_date DESC";
         List<HousekeepingSchedule> schedules = new ArrayList<>();
@@ -108,8 +109,8 @@ public class HousekeepingScheduleServiceImpl extends BaseServiceImpl<Housekeepin
 
     @Override
     public List<HousekeepingSchedule> findByStaff(HousekeepingStaff staff) {
-        String sql = "SELECT hs.*, hks.status_name FROM housekeeping_schedule hs " +
-                "JOIN housekeeping_statuses hks ON hs.status_id = hks.status_id " +
+        String sql = "SELECT hs.*, rs.status_name FROM housekeeping_schedule hs " +
+                "JOIN room_statuses rs ON hs.status_id = rs.status_id " +
                 "WHERE hs.staff_id = ? " +
                 "ORDER BY hs.scheduled_date DESC";
         List<HousekeepingSchedule> schedules = new ArrayList<>();
@@ -133,9 +134,9 @@ public class HousekeepingScheduleServiceImpl extends BaseServiceImpl<Housekeepin
     @Override
     public List<HousekeepingSchedule> findByDate(Hotel hotel, Date date) {
         String sql = "SELECT hs.*, u.first_name, u.last_name, " +
-                "hks.status_name FROM housekeeping_schedule hs " +
+                "rs.status_name FROM housekeeping_schedule hs " +
                 "JOIN users u ON hs.staff_id = u.user_id " +
-                "JOIN housekeeping_statuses hks ON hs.status_id = hks.status_id " +
+                "JOIN room_statuses rs ON hs.status_id = rs.status_id " +
                 "WHERE hs.hotel_id = ? AND hs.scheduled_date = ?";
         List<HousekeepingSchedule> schedules = new ArrayList<>();
 
@@ -161,9 +162,9 @@ public class HousekeepingScheduleServiceImpl extends BaseServiceImpl<Housekeepin
     @Override
     public List<HousekeepingSchedule> findByDateRange(Hotel hotel, Date startDate, Date endDate) {
         String sql = "SELECT hs.*, u.first_name, u.last_name, " +
-                "hks.status_name FROM housekeeping_schedule hs " +
+                "rs.status_name FROM housekeeping_schedule hs " +
                 "JOIN users u ON hs.staff_id = u.user_id " +
-                "JOIN housekeeping_statuses hks ON hs.status_id = hks.status_id " +
+                "JOIN room_statuses rs ON hs.status_id = rs.status_id " +
                 "WHERE hs.hotel_id = ? AND hs.scheduled_date BETWEEN ? AND ? " +
                 "ORDER BY hs.scheduled_date";
         List<HousekeepingSchedule> schedules = new ArrayList<>();
@@ -191,9 +192,9 @@ public class HousekeepingScheduleServiceImpl extends BaseServiceImpl<Housekeepin
     @Override
     public List<HousekeepingSchedule> findByRoom(Room room) {
         String sql = "SELECT hs.*, u.first_name, u.last_name, " +
-                "hks.status_name FROM housekeeping_schedule hs " +
+                "rs.status_name FROM housekeeping_schedule hs " +
                 "JOIN users u ON hs.staff_id = u.user_id " +
-                "JOIN housekeeping_statuses hks ON hs.status_id = hks.status_id " +
+                "JOIN room_statuses rs ON hs.status_id = rs.status_id " +
                 "WHERE hs.hotel_id = ? AND hs.room_number = ? " +
                 "ORDER BY hs.scheduled_date DESC";
         List<HousekeepingSchedule> schedules = new ArrayList<>();
@@ -256,10 +257,10 @@ public class HousekeepingScheduleServiceImpl extends BaseServiceImpl<Housekeepin
     @Override
     public List<HousekeepingSchedule> findPendingSchedules(Hotel hotel) {
         String sql = "SELECT hs.*, u.first_name, u.last_name, " +
-                "hks.status_name FROM housekeeping_schedule hs " +
+                "rs.status_name FROM housekeeping_schedule hs " +
                 "JOIN users u ON hs.staff_id = u.user_id " +
-                "JOIN housekeeping_statuses hks ON hs.status_id = hks.status_id " +
-                "WHERE hs.hotel_id = ? AND hs.status_id = 1 " + // 1 = PENDING
+                "JOIN room_statuses rs ON hs.status_id = rs.status_id " +
+                "WHERE hs.hotel_id = ? AND rs.status_id = 1 " + // 1 = PENDING
                 "ORDER BY hs.scheduled_date";
         List<HousekeepingSchedule> schedules = new ArrayList<>();
 
@@ -284,10 +285,10 @@ public class HousekeepingScheduleServiceImpl extends BaseServiceImpl<Housekeepin
     @Override
     public List<HousekeepingSchedule> findCompletedSchedules(Hotel hotel, Date startDate, Date endDate) {
         String sql = "SELECT hs.*, u.first_name, u.last_name, " +
-                "hks.status_name FROM housekeeping_schedule hs " +
+                "rs.status_name FROM housekeeping_schedule hs " +
                 "JOIN users u ON hs.staff_id = u.user_id " +
-                "JOIN housekeeping_statuses hks ON hs.status_id = hks.status_id " +
-                "WHERE hs.hotel_id = ? AND hs.status_id = 3 " + // 3 = COMPLETED
+                "JOIN room_statuses rs ON hs.status_id = rs.status_id " +
+                "WHERE hs.hotel_id = ? AND rs.status_id = 3 " + // 3 = COMPLETED
                 "AND hs.scheduled_date BETWEEN ? AND ? " +
                 "ORDER BY hs.scheduled_date DESC";
         List<HousekeepingSchedule> schedules = new ArrayList<>();

@@ -270,4 +270,34 @@ public class StaffServiceImpl extends BaseServiceImpl<Staff, Integer> implements
             throw new RuntimeException("Error finding employees with roles", e);
         }
     }
+
+    @Override
+    public List<Staff> findAvailableHousekeepers(int hotelId, Date date) throws SQLException {
+        String sql = """
+            SELECT u.*, s.hotel_id, s.salary, s.hire_date, 'HOUSEKEEPING' as role
+            FROM users u 
+            JOIN staff s ON u.user_id = s.user_id 
+            JOIN housekeeping_staff h ON u.user_id = h.user_id 
+            WHERE s.hotel_id = ? 
+            AND NOT EXISTS (
+                SELECT 1 FROM housekeeping_schedule hs 
+                WHERE hs.staff_id = u.user_id 
+                AND hs.scheduled_date = ?
+            )
+            ORDER BY u.last_name, u.first_name
+        """;
+        
+        List<Staff> staff = new ArrayList<>();
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, hotelId);
+            stmt.setDate(2, date);
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                staff.add(mapRow(rs));
+            }
+            return staff;
+        }
+    }
 } 

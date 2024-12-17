@@ -223,14 +223,17 @@ public class BookingServiceImpl extends BaseServiceImpl<Booking, Integer> implem
         }
     }
 
-    @Override
-    public void updateStatus(Integer bookingId, BookingStatus newStatus) {
-        String sql = "UPDATE bookings SET status_id = ? WHERE booking_id = ?";
+    public void updateBooking(Booking booking) {
+        String sql = "UPDATE bookings SET check_in_date = ?, check_out_date = ?, status_id = ?, total_guests = ?, confirmed_by = ? WHERE booking_id = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, newStatus.getStatusId());
-            stmt.setInt(2, bookingId);
+            stmt.setDate(1, booking.getCheckInDate());
+            stmt.setDate(2, booking.getCheckOutDate());
+            stmt.setInt(3, booking.getStatus().getStatusId());
+            stmt.setInt(4, booking.getTotalGuests());
+            stmt.setInt(5, booking.getConfirmedBy().getUserId());
+            stmt.setInt(6, booking.getBookingId());
 
             int affected = stmt.executeUpdate();
             if (affected == 0) {
@@ -239,20 +242,6 @@ public class BookingServiceImpl extends BaseServiceImpl<Booking, Integer> implem
         } catch (SQLException e) {
             throw new RuntimeException("Error updating booking status", e);
         }
-    }
-
-    @Override
-    public void checkIn(Integer bookingId) {
-        BookingStatus checkInStatus = new BookingStatus();
-        checkInStatus.setStatusId(3); // CHECKED_IN
-        updateStatus(bookingId, checkInStatus);
-    }
-
-    @Override
-    public void checkOut(Integer bookingId) {
-        BookingStatus checkOutStatus = new BookingStatus();
-        checkOutStatus.setStatusId(4); // COMPLETED
-        updateStatus(bookingId, checkOutStatus);
     }
 
     @Override

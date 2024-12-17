@@ -1,341 +1,682 @@
 package menu;
 
-import util.DatabaseConnection;
+import controller.ReceptionistMenuController;
+import model.*;
+import util.UIComponents;
+import service.*;
 
-import java.sql.*;
-import java.util.Scanner;
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.math.BigDecimal;
+import java.util.Vector;
 
 public class ReceptionistMenuHandler {
-    private static Scanner scanner = new Scanner(System.in);
+    private final ReceptionistMenuController receptionistMenuController;
+    private JPanel mainPanel;
+    private final JFrame parentFrame;
 
-    public static void handleMenu() {
-        while (true) {
-            displayMenu();
-            int choice = getUserChoice();
+    public ReceptionistMenuHandler(JFrame parentFrame) {
+        this.parentFrame = parentFrame;
+        this.receptionistMenuController = new ReceptionistMenuController();
+    }
 
-            switch (choice) {
-                case 1:
-                    addNewBooking();
-                    break;
-                case 2:
-                    modifyBooking();
-                    break;
-                case 3:
-                    deleteBooking();
-                    break;
-                case 4:
-                    viewBookings();
-                    break;
-                case 5:
-                    processPayment();
-                    break;
-                case 6:
-                    assignHousekeepingTask();
-                    break;
-                case 7:
-                    viewHousekeepers();
-                    break;
-                case 8:
-                    return;
-                default:
-                    System.out.println("Invalid choice. Please try again.");
-            }
+    public JPanel getMainPanel() {
+        if (mainPanel == null) {
+            createMainPanel();
         }
+        return mainPanel;
     }
 
-    private static void displayMenu() {
-        System.out.println("\n=== Receptionist Menu ===");
-        System.out.println("1. Add New Booking");
-        System.out.println("2. Modify Booking");
-        System.out.println("3. Delete Booking");
-        System.out.println("4. View Bookings");
-        System.out.println("5. Process Payment");
-        System.out.println("6. Assign Housekeeping Task");
-        System.out.println("7. View Housekeepers");
-        System.out.println("8. Return to Main Menu");
-        System.out.print("Enter your choice: ");
+    private void createMainPanel() {
+        mainPanel = UIComponents.createButtonPanel();
+        GridBagConstraints gbc = UIComponents.createGBC();
+
+        // Create buttons for all receptionist functionalities
+        JButton addBookingBtn = UIComponents.createStyledButton("Add New Booking");
+        JButton modifyBookingBtn = UIComponents.createStyledButton("Modify Booking");
+        JButton deleteBookingBtn = UIComponents.createStyledButton("Delete Booking");
+        JButton viewBookingsBtn = UIComponents.createStyledButton("View Bookings");
+        JButton processPaymentBtn = UIComponents.createStyledButton("Process Payment");
+        JButton assignHousekeepingBtn = UIComponents.createStyledButton("Assign Housekeeping Task");
+        JButton viewHousekeepingBtn = UIComponents.createStyledButton("View Housekeeping Records");
+
+        // Add action listeners
+        addBookingBtn.addActionListener(e -> showAddBookingDialog());
+        modifyBookingBtn.addActionListener(e -> showModifyBookingDialog());
+        deleteBookingBtn.addActionListener(e -> showDeleteBookingDialog());
+        viewBookingsBtn.addActionListener(e -> showViewBookingsDialog());
+        processPaymentBtn.addActionListener(e -> showProcessPaymentDialog());
+        assignHousekeepingBtn.addActionListener(e -> showAssignHousekeepingDialog());
+        viewHousekeepingBtn.addActionListener(e -> showHousekeepingRecordsDialog());
+
+        // Add components to panel
+        mainPanel.add(addBookingBtn, gbc);
+        mainPanel.add(modifyBookingBtn, gbc);
+        mainPanel.add(deleteBookingBtn, gbc);
+        mainPanel.add(viewBookingsBtn, gbc);
+        mainPanel.add(processPaymentBtn, gbc);
+        mainPanel.add(assignHousekeepingBtn, gbc);
+        mainPanel.add(viewHousekeepingBtn, gbc);
     }
 
-    private static int getUserChoice() {
+    private void showAddBookingDialog() {
+        JDialog dialog = UIComponents.createStyledDialog(parentFrame, "Add New Booking", UIComponents.LARGE_DIALOG_SIZE);
+        JPanel panel = UIComponents.createMainPanel();
+        panel.setLayout(new BorderLayout());
+
+        // Create form panel
+        JPanel formPanel = new JPanel(new GridLayout(0, 2, 5, 5));
+        
+        // Guest search
+        JTextField guestSearchField = new JTextField(20);
+        JComboBox<User> guestCombo = new JComboBox<>();
+        guestCombo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                if (value instanceof User) {
+                    User user = (User) value;
+                    value = String.format("%s %s (%s)", user.getFirstName(), user.getLastName(), user.getPhone());
+                }
+                return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            }
+        });
+
+        JButton searchButton = UIComponents.createStyledButton("Search Guest");
+        searchButton.addActionListener(e -> {
+            try {
+                String searchTerm = guestSearchField.getText().trim();
+                if (!searchTerm.isEmpty()) {
+                    List<User> guests = receptionistMenuController.searchGuests(searchTerm);
+                    guestCombo.removeAllItems();
+                    for (User guest : guests) {
+                        guestCombo.addItem(guest);
+                    }
+                }
+            } catch (SQLException ex) {
+                UIComponents.handleException(dialog, ex, "Failed to search guests");
+            }
+        });
+
+        // Date fields
+        JTextField checkInField = new JTextField(10);
+        JTextField checkOutField = new JTextField(10);
+        JTextField totalGuestsField = new JTextField(5);
+        
+        // Available rooms table
+        String[] columns = {"Select", "Room Number", "Room Type", "Capacity", "Price"};
+        DefaultTableModel model = new DefaultTableModel(columns, 0) {
+            @Override
+            public Class<?> getColumnClass(int column) {
+                return column == 0 ? Boolean.class : Object.class;
+            }
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column == 0;
+            }
+        };
+        JTable roomsTable = UIComponents.createTable(model, false);
+        JScrollPane scrollPane = new JScrollPane(roomsTable);
+        scrollPane.setVisible(false);
+
+        JButton checkAvailabilityBtn = UIComponents.createStyledButton("Check Availability");
+        checkAvailabilityBtn.addActionListener(e -> {
+            try {
+                if (checkInField.getText().isEmpty() || checkOutField.getText().isEmpty()) {
+                    UIComponents.showWarning(dialog, "Please enter both check-in and check-out dates");
+                    return;
+                }
+
+                model.setRowCount(0);
+                List<Room> rooms = receptionistMenuController.getAvailableRooms(
+                    checkInField.getText().trim(),
+                    checkOutField.getText().trim()
+                );
+                
+                if (rooms.isEmpty()) {
+                    UIComponents.showInfo(dialog, "No rooms available for the selected dates");
+                    scrollPane.setVisible(false);
+                } else {
+                    for (Room room : rooms) {
+                        model.addRow(new Object[]{
+                            false,
+                            room.getRoomNumber(),
+                            room.getRoomType().getTypeName(),
+                            room.getRoomType().getCapacity(),
+                            room.getRoomType().getBasePrice()
+                        });
+                    }
+                    scrollPane.setVisible(true);
+                    panel.revalidate();
+                    panel.repaint();
+                }
+                dialog.pack();
+            } catch (SQLException ex) {
+                UIComponents.handleException(dialog, ex, "Failed to check room availability");
+            }
+        });
+
+        // Add components to form
+        formPanel.add(new JLabel("Search Guest:"));
+        formPanel.add(guestSearchField);
+        formPanel.add(new JLabel("Select Guest:"));
+        formPanel.add(guestCombo);
+        formPanel.add(new JLabel(""));
+        formPanel.add(searchButton);
+        formPanel.add(new JLabel("Check-in Date (YYYY-MM-DD):"));
+        formPanel.add(checkInField);
+        formPanel.add(new JLabel("Check-out Date (YYYY-MM-DD):"));
+        formPanel.add(checkOutField);
+        formPanel.add(new JLabel("Total Guests:"));
+        formPanel.add(totalGuestsField);
+        formPanel.add(new JLabel(""));
+        formPanel.add(checkAvailabilityBtn);
+
+        // Create button panel
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton addButton = UIComponents.createStyledButton("Add Booking");
+        addButton.addActionListener(e -> {
+            try {
+                User selectedGuest = (User) guestCombo.getSelectedItem();
+                if (selectedGuest == null) {
+                    UIComponents.showError(dialog, "Please select a guest");
+                    return;
+                }
+
+                if (checkInField.getText().isEmpty() || 
+                    checkOutField.getText().isEmpty() || 
+                    totalGuestsField.getText().isEmpty()) {
+                    UIComponents.showWarning(dialog, "Please fill in all fields");
+                    return;
+                }
+
+                int totalGuestsRequested;
+                int totalCapacityOfSelectedRooms = 0;
+                Map<String, Integer> selectedRoomNumbers = new HashMap<>();
+
+                try {
+                    totalGuestsRequested = Integer.parseInt(totalGuestsField.getText());
+                    if (totalGuestsRequested <= 0) {
+                        UIComponents.showWarning(dialog, "Total guests must be greater than 0");
+                        return;
+                    }
+
+                    for (int i = 0; i < model.getRowCount(); i++) {
+                        boolean isSelected = (boolean) model.getValueAt(i, 0);
+                        if (isSelected) {
+                            selectedRoomNumbers.put((String) model.getValueAt(i, 1), (int) model.getValueAt(i, 3));
+                            totalCapacityOfSelectedRooms += (int) model.getValueAt(i, 3);
+                        }
+                    }
+
+                    if (selectedRoomNumbers.isEmpty()) {
+                        UIComponents.showWarning(dialog, "Please select at least one room");
+                        return;
+                    }
+                    if (totalGuestsRequested > totalCapacityOfSelectedRooms) {
+                        UIComponents.showWarning(dialog, "Total guests requested exceeds the capacity of selected rooms");
+                        return;
+                    }
+                } catch (NumberFormatException ex) {
+                    UIComponents.showWarning(dialog, "Please enter a valid number for total guests");
+                    return;
+                }
+
+                receptionistMenuController.addBooking(
+                    selectedGuest.getUserId(),
+                    checkInField.getText().trim(),
+                    checkOutField.getText().trim(),
+                    Integer.parseInt(totalGuestsField.getText().trim()),
+                    selectedRoomNumbers
+                );
+                UIComponents.showInfo(dialog, "Booking added successfully!");
+                dialog.dispose();
+            } catch (SQLException ex) {
+                UIComponents.handleException(dialog, ex, "Failed to add booking");
+            }
+        });
+        buttonPanel.add(addButton);
+
+        // Layout
+        panel.setLayout(new BorderLayout());
+        panel.add(formPanel, BorderLayout.NORTH);
+        panel.add(scrollPane, BorderLayout.CENTER);
+        panel.add(buttonPanel, BorderLayout.SOUTH);
+        dialog.add(panel);
+        dialog.setVisible(true);
+    }
+
+    private void showModifyBookingDialog() {
+        JDialog dialog = UIComponents.createStyledDialog(parentFrame, "Modify Booking", UIComponents.LARGE_DIALOG_SIZE);
+        JPanel panel = UIComponents.createMainPanel();
+
+        // Create table for bookings
+        String[] columns = {"Booking ID", "Guest", "Check In", "Check Out", "Status", "Total Guests"};
+        DefaultTableModel model = new DefaultTableModel(columns, 0);
+        JTable table = UIComponents.createTable(model, false);
+        JScrollPane scrollPane = new JScrollPane(table);
+
+        // Load bookings and statuses
+        List<BookingStatus> bookingStatuses = new ArrayList<>();
+        DefaultComboBoxModel<BookingStatus> statusModel = new DefaultComboBoxModel<>();
+        JComboBox<BookingStatus> statusCombo = new JComboBox<>(statusModel);
+        statusCombo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                if (value instanceof BookingStatus) {
+                    value = ((BookingStatus) value).getStatusName();
+                }
+                return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            }
+        });
+
         try {
-            return Integer.parseInt(scanner.nextLine());
-        } catch (NumberFormatException e) {
-            return -1;
+            // Load booking statuses
+            bookingStatuses = receptionistMenuController.getBookingStatuses();
+            for (BookingStatus status : bookingStatuses) {
+                statusModel.addElement(status);
+            }
+
+            // Load bookings
+            List<Booking> bookings = receptionistMenuController.viewAllBookings();
+            for (Booking booking : bookings) {
+                model.addRow(new Object[]{
+                    booking.getBookingId(),
+                    booking.getGuest().getFirstName() + " " + booking.getGuest().getLastName(),
+                    booking.getCheckInDate(),
+                    booking.getCheckOutDate(),
+                    booking.getStatus().getStatusName(),
+                    booking.getTotalGuests()
+                });
+            }
+        } catch (SQLException ex) {
+            UIComponents.handleException(dialog, ex, "Failed to load data");
         }
-    }
 
-    private static void addNewBooking() {
-        try (Connection conn = DatabaseConnection.getConnection()) {
-            System.out.print("Enter guest ID: ");
-            int guestId = Integer.parseInt(scanner.nextLine());
+        // Create form for modification
+        JPanel formPanel = new JPanel(new GridLayout(0, 2, 5, 5));
+        JTextField checkInField = new JTextField(10);
+        JTextField checkOutField = new JTextField(10);
+        JTextField totalGuestsField = new JTextField(5);
 
-            System.out.print("Enter room ID: ");
-            int roomId = Integer.parseInt(scanner.nextLine());
+        formPanel.add(new JLabel("New Check-in Date (YYYY-MM-DD):"));
+        formPanel.add(checkInField);
+        formPanel.add(new JLabel("New Check-out Date (YYYY-MM-DD):"));
+        formPanel.add(checkOutField);
+        formPanel.add(new JLabel("New Total Guests:"));
+        formPanel.add(totalGuestsField);
+        formPanel.add(new JLabel("New Status:"));
+        formPanel.add(statusCombo);
 
-            System.out.print("Enter check-in date (YYYY-MM-DD): ");
-            String checkInDate = scanner.nextLine();
+        // Add selection listener to populate fields when row is selected
+        table.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                int selectedRow = table.getSelectedRow();
+                if (selectedRow != -1) {
+                    checkInField.setText(table.getValueAt(selectedRow, 2).toString());
+                    checkOutField.setText(table.getValueAt(selectedRow, 3).toString());
+                    totalGuestsField.setText(table.getValueAt(selectedRow, 5).toString());
+                    String currentStatus = table.getValueAt(selectedRow, 4).toString();
+                    for (int i = 0; i < statusModel.getSize(); i++) {
+                        BookingStatus status = statusModel.getElementAt(i);
+                        if (status.getStatusName().equals(currentStatus)) {
+                            statusCombo.setSelectedIndex(i);
+                            break;
+                        }
+                    }
+                }
+            }
+        });
 
-            System.out.print("Enter check-out date (YYYY-MM-DD): ");
-            String checkOutDate = scanner.nextLine();
-
-            // Check room availability
-            PreparedStatement checkStmt = conn.prepareStatement(
-                    "SELECT COUNT(*) FROM bookings " +
-                            "WHERE room_id = ? AND status != 'CANCELLED' " +
-                            "AND ((check_in_date BETWEEN ? AND ?) OR (check_out_date BETWEEN ? AND ?))");
-
-            checkStmt.setInt(1, roomId);
-            checkStmt.setString(2, checkInDate);
-            checkStmt.setString(3, checkOutDate);
-            checkStmt.setString(4, checkInDate);
-            checkStmt.setString(5, checkOutDate);
-
-            ResultSet rs = checkStmt.executeQuery();
-            rs.next();
-
-            if (rs.getInt(1) > 0) {
-                System.out.println("Room is not available for the selected dates.");
+        JButton modifyButton = UIComponents.createStyledButton("Modify Booking");
+        modifyButton.addActionListener(e -> {
+            int selectedRow = table.getSelectedRow();
+            if (selectedRow == -1) {
+                UIComponents.showError(dialog, "Please select a booking to modify");
                 return;
             }
 
-            PreparedStatement insertStmt = conn.prepareStatement(
-                    "INSERT INTO bookings (guest_id, room_id, check_in_date, check_out_date, status) " +
-                            "VALUES (?, ?, ?, ?, 'PENDING')");
-
-            insertStmt.setInt(1, guestId);
-            insertStmt.setInt(2, roomId);
-            insertStmt.setString(3, checkInDate);
-            insertStmt.setString(4, checkOutDate);
-
-            int affected = insertStmt.executeUpdate();
-            if (affected > 0) {
-                System.out.println("Booking added successfully!");
-            }
-        } catch (SQLException e) {
-            System.err.println("Error adding booking: " + e.getMessage());
-        }
-    }
-
-    private static void modifyBooking() {
-        try (Connection conn = DatabaseConnection.getConnection()) {
-            System.out.print("Enter booking ID to modify: ");
-            int bookingId = Integer.parseInt(scanner.nextLine());
-
-            // First check if booking exists and is modifiable
-            PreparedStatement checkStmt = conn.prepareStatement(
-                    "SELECT status FROM bookings WHERE booking_id = ?");
-            checkStmt.setInt(1, bookingId);
-            ResultSet rs = checkStmt.executeQuery();
-
-            if (!rs.next()) {
-                System.out.println("Booking not found.");
-                return;
-            }
-
-            if (!"PENDING".equals(rs.getString("status"))) {
-                System.out.println("Only pending bookings can be modified.");
-                return;
-            }
-
-            System.out.println("What would you like to modify?");
-            System.out.println("1. Check-in date");
-            System.out.println("2. Check-out date");
-            System.out.println("3. Room");
-            System.out.print("Enter choice: ");
-
-            int choice = Integer.parseInt(scanner.nextLine());
-            String updateQuery = "";
-
-            switch (choice) {
-                case 1:
-                    System.out.print("Enter new check-in date (YYYY-MM-DD): ");
-                    String newCheckIn = scanner.nextLine();
-                    updateQuery = "UPDATE bookings SET check_in_date = ? WHERE booking_id = ?";
-                    try (PreparedStatement updateStmt = conn.prepareStatement(updateQuery)) {
-                        updateStmt.setString(1, newCheckIn);
-                        updateStmt.setInt(2, bookingId);
-                        updateStmt.executeUpdate();
-                    }
-                    break;
-
-                case 2:
-                    System.out.print("Enter new check-out date (YYYY-MM-DD): ");
-                    String newCheckOut = scanner.nextLine();
-                    updateQuery = "UPDATE bookings SET check_out_date = ? WHERE booking_id = ?";
-                    try (PreparedStatement updateStmt = conn.prepareStatement(updateQuery)) {
-                        updateStmt.setString(1, newCheckOut);
-                        updateStmt.setInt(2, bookingId);
-                        updateStmt.executeUpdate();
-                    }
-                    break;
-
-                case 3:
-                    System.out.print("Enter new room ID: ");
-                    int newRoomId = Integer.parseInt(scanner.nextLine());
-                    updateQuery = "UPDATE bookings SET room_id = ? WHERE booking_id = ?";
-                    try (PreparedStatement updateStmt = conn.prepareStatement(updateQuery)) {
-                        updateStmt.setInt(1, newRoomId);
-                        updateStmt.setInt(2, bookingId);
-                        updateStmt.executeUpdate();
-                    }
-                    break;
-
-                default:
-                    System.out.println("Invalid choice.");
+            try {
+                String checkIn = checkInField.getText().trim();
+                String checkOut = checkOutField.getText().trim();
+                String totalGuestsStr = totalGuestsField.getText().trim();
+                
+                if (checkIn.isEmpty() || checkOut.isEmpty() || totalGuestsStr.isEmpty()) {
+                    UIComponents.showWarning(dialog, "Please fill in all fields");
                     return;
+                }
+
+                int totalGuests = Integer.parseInt(totalGuestsStr);
+                int bookingId = (int) table.getValueAt(selectedRow, 0);
+                
+                // Get selected status ID
+                BookingStatus selectedStatus = (BookingStatus) statusCombo.getSelectedItem();
+                if (selectedStatus == null) {
+                    UIComponents.showWarning(dialog, "Please select a status");
+                    return;
+                }
+                
+                receptionistMenuController.modifyBooking(
+                    bookingId,
+                    checkIn,
+                    checkOut,
+                    totalGuests,
+                    selectedStatus.getStatusId()
+                );
+                UIComponents.showInfo(dialog, "Booking modified successfully!");
+                dialog.dispose();
+            } catch (SQLException ex) {
+                UIComponents.handleException(dialog, ex, "Failed to modify booking");
+            } catch (NumberFormatException ex) {
+                UIComponents.showWarning(dialog, "Please enter a valid number for total guests");
             }
+        });
 
-            System.out.println("Booking modified successfully!");
-
-        } catch (SQLException e) {
-            System.err.println("Error modifying booking: " + e.getMessage());
-        }
+        // Layout
+        panel.setLayout(new BorderLayout());
+        panel.add(scrollPane, BorderLayout.NORTH);
+        panel.add(formPanel, BorderLayout.CENTER);
+        panel.add(modifyButton, BorderLayout.SOUTH);
+        dialog.add(panel);
+        dialog.setVisible(true);
     }
 
-    private static void deleteBooking() {
-        try (Connection conn = DatabaseConnection.getConnection()) {
-            System.out.print("Enter booking ID to delete: ");
-            int bookingId = Integer.parseInt(scanner.nextLine());
+    private void showDeleteBookingDialog() {
+        JDialog dialog = UIComponents.createStyledDialog(parentFrame, "Cancel Booking", UIComponents.MEDIUM_DIALOG_SIZE);
+        JPanel panel = UIComponents.createMainPanel();
 
-            PreparedStatement stmt = conn.prepareStatement(
-                    "UPDATE bookings SET status = 'CANCELLED' WHERE booking_id = ? AND status = 'PENDING'");
-            stmt.setInt(1, bookingId);
+        String[] columns = {"Booking ID", "Guest", "Check In", "Check Out", "Status", "Total Guests"};
+        DefaultTableModel model = new DefaultTableModel(columns, 0);
+        JTable table = UIComponents.createTable(model, false);
+        JScrollPane scrollPane = new JScrollPane(table);
 
-            int affected = stmt.executeUpdate();
-            if (affected > 0) {
-                System.out.println("Booking cancelled successfully!");
-            } else {
-                System.out.println("Could not cancel booking. It may not exist or already be processed.");
+        try {
+            List<Booking> bookings = receptionistMenuController.viewAllBookings();
+            for (Booking booking : bookings) {
+                model.addRow(new Object[]{
+                    booking.getBookingId(),
+                    booking.getGuest().getFirstName() + " " + booking.getGuest().getLastName(),
+                    booking.getCheckInDate(),
+                    booking.getCheckOutDate(),
+                    booking.getStatus().getStatusName(),
+                    booking.getTotalGuests()
+                });
             }
-        } catch (SQLException e) {
-            System.err.println("Error cancelling booking: " + e.getMessage());
+        } catch (SQLException ex) {
+            UIComponents.handleException(dialog, ex, "Failed to load bookings");
         }
-    }
 
-    private static void viewBookings() {
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(
-                     "SELECT b.booking_id, u.first_name, u.last_name, r.room_number, " +
-                             "b.check_in_date, b.check_out_date, b.status " +
-                             "FROM bookings b " +
-                             "JOIN users u ON b.guest_id = u.user_id " +
-                             "JOIN rooms r ON b.room_id = r.room_id " +
-                             "ORDER BY b.check_in_date")) {
-
-            ResultSet rs = stmt.executeQuery();
-            System.out.println("\nCurrent Bookings:");
-            System.out.println("Booking ID | Guest | Room | Check-in | Check-out | Status");
-            System.out.println("--------------------------------------------------------");
-
-            while (rs.next()) {
-                System.out.printf("%10d | %s | %s | %s | %s | %s%n",
-                        rs.getInt("booking_id"),
-                        rs.getString("first_name") + " " + rs.getString("last_name"),
-                        rs.getString("room_number"),
-                        rs.getDate("check_in_date"),
-                        rs.getDate("check_out_date"),
-                        rs.getString("status"));
-            }
-        } catch (SQLException e) {
-            System.err.println("Error viewing bookings: " + e.getMessage());
-        }
-    }
-
-    private static void processPayment() {
-        try (Connection conn = DatabaseConnection.getConnection()) {
-            System.out.print("Enter booking ID: ");
-            int bookingId = Integer.parseInt(scanner.nextLine());
-
-            System.out.print("Enter payment amount: ");
-            double amount = Double.parseDouble(scanner.nextLine());
-
-            System.out.print("Enter payment method (CASH/CARD): ");
-            String paymentMethod = scanner.nextLine().toUpperCase();
-
-            // First check if booking exists and payment is needed
-            PreparedStatement checkStmt = conn.prepareStatement(
-                    "SELECT status FROM bookings WHERE booking_id = ?");
-            checkStmt.setInt(1, bookingId);
-            ResultSet rs = checkStmt.executeQuery();
-
-            if (!rs.next()) {
-                System.out.println("Booking not found.");
+        JButton cancelButton = UIComponents.createStyledButton("Cancel Selected Booking");
+        cancelButton.addActionListener(e -> {
+            int selectedRow = table.getSelectedRow();
+            if (selectedRow == -1) {
+                UIComponents.showError(dialog, "Please select a booking to cancel");
                 return;
             }
 
-            // Process payment
-            PreparedStatement paymentStmt = conn.prepareStatement(
-                    "INSERT INTO payments (booking_id, amount, payment_method, status) " +
-                            "VALUES (?, ?, ?, 'COMPLETED')");
-            paymentStmt.setInt(1, bookingId);
-            paymentStmt.setDouble(2, amount);
-            paymentStmt.setString(3, paymentMethod);
-            paymentStmt.executeUpdate();
+            try {
+                int bookingId = (int) table.getValueAt(selectedRow, 0);
+                if (UIComponents.showConfirmDialog(dialog, 
+                    "Are you sure you want to cancel this booking?",
+                    "Confirm Cancellation")) {
+                    receptionistMenuController.deleteBooking(bookingId);
+                    UIComponents.showInfo(dialog, "Booking cancelled successfully!");
+                    dialog.dispose();
+                }
+            } catch (SQLException ex) {
+                UIComponents.handleException(dialog, ex, "Failed to cancel booking");
+            }
+        });
 
-            // Update booking status
-            PreparedStatement updateStmt = conn.prepareStatement(
-                    "UPDATE bookings SET status = 'PAID' WHERE booking_id = ?");
-            updateStmt.setInt(1, bookingId);
-            updateStmt.executeUpdate();
-
-            System.out.println("Payment processed successfully!");
-
-        } catch (SQLException e) {
-            System.err.println("Error processing payment: " + e.getMessage());
-        }
+        panel.setLayout(new BorderLayout());
+        panel.add(scrollPane, BorderLayout.CENTER);
+        panel.add(cancelButton, BorderLayout.SOUTH);
+        dialog.add(panel);
+        dialog.setVisible(true);
     }
 
-    private static void assignHousekeepingTask() {
-        try (Connection conn = DatabaseConnection.getConnection()) {
-            System.out.print("Enter room ID: ");
-            int roomId = Integer.parseInt(scanner.nextLine());
+    private void showViewBookingsDialog() {
+        JDialog dialog = UIComponents.createStyledDialog(parentFrame, "View Bookings", UIComponents.LARGE_DIALOG_SIZE);
+        JPanel panel = UIComponents.createMainPanel();
 
-            System.out.print("Enter housekeeper ID: ");
-            int housekeeperId = Integer.parseInt(scanner.nextLine());
+        String[] columns = {"Booking ID", "Guest", "Check In", "Check Out", "Status", "Total Guests", "Created At"};
+        DefaultTableModel model = new DefaultTableModel(columns, 0);
+        JTable table = UIComponents.createTable(model, false);
+        JScrollPane scrollPane = new JScrollPane(table);
 
-            System.out.print("Enter cleaning date (YYYY-MM-DD): ");
-            String cleaningDate = scanner.nextLine();
-
-            PreparedStatement stmt = conn.prepareStatement(
-                    "INSERT INTO housekeeping_schedule (room_id, housekeeper_id, cleaning_date, status) " +
-                            "VALUES (?, ?, ?, 'PENDING')");
-            stmt.setInt(1, roomId);
-            stmt.setInt(2, housekeeperId);
-            stmt.setString(3, cleaningDate);
-
-            int affected = stmt.executeUpdate();
-            if (affected > 0) {
-                System.out.println("Housekeeping task assigned successfully!");
+        try {
+            List<Booking> bookings = receptionistMenuController.viewAllBookings();
+            for (Booking booking : bookings) {
+                model.addRow(new Object[]{
+                    booking.getBookingId(),
+                    booking.getGuest().getFirstName() + " " + booking.getGuest().getLastName(),
+                    booking.getCheckInDate(),
+                    booking.getCheckOutDate(),
+                    booking.getStatus().getStatusName(),
+                    booking.getTotalGuests(),
+                    booking.getCreatedAt()
+                });
             }
-        } catch (SQLException e) {
-            System.err.println("Error assigning housekeeping task: " + e.getMessage());
+        } catch (SQLException ex) {
+            UIComponents.handleException(dialog, ex, "Failed to load bookings");
         }
+
+        panel.setLayout(new BorderLayout());
+        panel.add(scrollPane, BorderLayout.CENTER);
+        dialog.add(panel);
+        dialog.setVisible(true);
     }
 
-    private static void viewHousekeepers() {
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(
-                     "SELECT u.user_id, u.first_name, u.last_name, " +
-                             "COUNT(h.schedule_id) as pending_tasks " +
-                             "FROM users u " +
-                             "LEFT JOIN housekeeping_schedule h ON u.user_id = h.housekeeper_id " +
-                             "AND h.status = 'PENDING' " +
-                             "WHERE u.role = 'HOUSEKEEPING' " +
-                             "GROUP BY u.user_id, u.first_name, u.last_name")) {
+    private void showProcessPaymentDialog() {
+        JDialog dialog = UIComponents.createStyledDialog(parentFrame, "Process Payment", UIComponents.LARGE_DIALOG_SIZE);
+        JPanel panel = UIComponents.createMainPanel();
 
-            ResultSet rs = stmt.executeQuery();
-            System.out.println("\nHousekeepers and Their Workload:");
-            System.out.println("ID | Name | Pending Tasks");
-            System.out.println("-------------------------");
+        // Create table for bookings
+        String[] columns = {"Booking ID", "Guest", "Check In", "Check Out", "Status", "Total Guests"};
+        DefaultTableModel model = new DefaultTableModel(columns, 0);
+        JTable table = UIComponents.createTable(model, false);
+        JScrollPane scrollPane = new JScrollPane(table);
 
-            while (rs.next()) {
-                System.out.printf("%d | %s | %d%n",
-                        rs.getInt("user_id"),
-                        rs.getString("first_name") + " " + rs.getString("last_name"),
-                        rs.getInt("pending_tasks"));
+        try {
+            List<Booking> bookings = receptionistMenuController.viewAllBookings();
+            for (Booking booking : bookings) {
+                model.addRow(new Object[]{
+                    booking.getBookingId(),
+                    booking.getGuest().getFirstName() + " " + booking.getGuest().getLastName(),
+                    booking.getCheckInDate(),
+                    booking.getCheckOutDate(),
+                    booking.getStatus().getStatusName(),
+                    booking.getTotalGuests()
+                });
             }
-        } catch (SQLException e) {
-            System.err.println("Error viewing housekeepers: " + e.getMessage());
+        } catch (SQLException ex) {
+            UIComponents.handleException(dialog, ex, "Failed to load bookings");
         }
+
+        // Payment details panel
+        JPanel paymentPanel = new JPanel(new GridLayout(0, 2, 5, 5));
+        JTextField amountField = new JTextField(10);
+        String[] paymentMethods = {"Credit Card", "Debit Card", "Cash"};
+        JComboBox<String> paymentMethodCombo = new JComboBox<>(paymentMethods);
+
+        paymentPanel.add(new JLabel("Amount:"));
+        paymentPanel.add(amountField);
+        paymentPanel.add(new JLabel("Payment Method:"));
+        paymentPanel.add(paymentMethodCombo);
+
+        JButton processButton = UIComponents.createStyledButton("Process Payment");
+        processButton.addActionListener(e -> {
+            int selectedRow = table.getSelectedRow();
+            if (selectedRow == -1) {
+                UIComponents.showError(dialog, "Please select a booking");
+                return;
+            }
+
+            try {
+                int bookingId = (int) table.getValueAt(selectedRow, 0);
+                String amountStr = amountField.getText().trim();
+                
+                if (amountStr.isEmpty()) {
+                    UIComponents.showWarning(dialog, "Please enter payment amount");
+                    return;
+                }
+
+                receptionistMenuController.processPayment(
+                    bookingId,
+                    new BigDecimal(amountStr),
+                    (String) paymentMethodCombo.getSelectedItem()
+                );
+                UIComponents.showInfo(dialog, "Payment processed successfully!");
+                dialog.dispose();
+            } catch (SQLException ex) {
+                UIComponents.handleException(dialog, ex, "Failed to process payment");
+            } catch (NumberFormatException ex) {
+                UIComponents.showWarning(dialog, "Please enter a valid amount");
+            }
+        });
+
+        // Layout
+        panel.setLayout(new BorderLayout());
+        panel.add(scrollPane, BorderLayout.CENTER);
+        panel.add(paymentPanel, BorderLayout.SOUTH);
+        panel.add(processButton, BorderLayout.SOUTH);
+        dialog.add(panel);
+        dialog.setVisible(true);
+    }
+
+    private void showAssignHousekeepingDialog() {
+        JDialog dialog = UIComponents.createStyledDialog(parentFrame, "Assign Housekeeping Task", UIComponents.MEDIUM_DIALOG_SIZE);
+        JPanel panel = UIComponents.createMainPanel();
+
+        // Room selection
+        DefaultComboBoxModel<Room> roomModel = new DefaultComboBoxModel<>();
+        JComboBox<Room> roomCombo = new JComboBox<>(roomModel);
+        roomCombo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                if (value instanceof Room) {
+                    Room room = (Room) value;
+                    value = String.format("Room %s - %s", 
+                        room.getRoomNumber(),
+                        room.getStatus().getStatusName());
+                }
+                return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            }
+        });
+
+        // Staff selection
+        DefaultComboBoxModel<Staff> staffModel = new DefaultComboBoxModel<>();
+        JComboBox<Staff> staffCombo = new JComboBox<>(staffModel);
+        staffCombo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                if (value instanceof Staff) {
+                    Staff staff = (Staff) value;
+                    value = staff.getFirstName() + " " + staff.getLastName();
+                }
+                return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            }
+        });
+
+        // Date field
+        JTextField dateField = new JTextField(10);
+
+        // Load rooms
+        try {
+            List<Room> rooms = receptionistMenuController.getRooms();
+            for (Room room : rooms) {
+                roomModel.addElement(room);
+            }
+        } catch (SQLException ex) {
+            UIComponents.handleException(dialog, ex, "Failed to load rooms");
+        }
+
+        // Check staff availability button
+        JButton checkStaffBtn = UIComponents.createStyledButton("Check Available Staff");
+        checkStaffBtn.addActionListener(e -> {
+            try {
+                String date = dateField.getText().trim();
+                List<Staff> availableStaff = receptionistMenuController.getAvailableHousekeepers(date);
+                staffModel.removeAllElements();
+                for (Staff staff : availableStaff) {
+                    staffModel.addElement(staff);
+                }
+            } catch (SQLException ex) {
+                UIComponents.handleException(dialog, ex, "Failed to check staff availability");
+            }
+        });
+
+        // Layout
+        panel.setLayout(new GridLayout(0, 2, 5, 5));
+        panel.add(new JLabel("Select Room:"));
+        panel.add(roomCombo);
+        panel.add(new JLabel("Date (YYYY-MM-DD):"));
+        panel.add(dateField);
+        panel.add(new JLabel(""));
+        panel.add(checkStaffBtn);
+        panel.add(new JLabel("Select Staff:"));
+        panel.add(staffCombo);
+
+        JButton assignButton = UIComponents.createStyledButton("Assign Task");
+        assignButton.addActionListener(e -> {
+            try {
+                Room selectedRoom = (Room) roomCombo.getSelectedItem();
+                Staff selectedStaff = (Staff) staffCombo.getSelectedItem();
+                
+                if (selectedRoom == null || selectedStaff == null) {
+                    UIComponents.showError(dialog, "Please select both room and staff");
+                    return;
+                }
+
+                receptionistMenuController.assignHousekeepingTask(
+                    selectedRoom.getRoomNumber(),
+                    selectedStaff.getUserId(),
+                    dateField.getText().trim()
+                );
+                UIComponents.showInfo(dialog, "Housekeeping task assigned successfully!");
+                dialog.dispose();
+            } catch (SQLException ex) {
+                UIComponents.handleException(dialog, ex, "Failed to assign housekeeping task");
+            }
+        });
+
+        panel.add(new JLabel(""));
+        panel.add(assignButton);
+        dialog.add(panel);
+        dialog.setVisible(true);
+    }
+
+    private void showHousekeepingRecordsDialog() {
+        JDialog dialog = UIComponents.createStyledDialog(parentFrame, "Housekeeping Records", UIComponents.LARGE_DIALOG_SIZE);
+        JPanel panel = UIComponents.createMainPanel();
+
+        String[] columns = {"Schedule ID", "Room", "Staff", "Date"};
+        DefaultTableModel model = new DefaultTableModel(columns, 0);
+        JTable table = UIComponents.createTable(model, false);
+        JScrollPane scrollPane = new JScrollPane(table);
+
+        try {
+            List<HousekeepingSchedule> schedules = receptionistMenuController.viewHousekeepingRecords();
+            for (HousekeepingSchedule schedule : schedules) {
+                model.addRow(new Object[]{
+                    schedule.getScheduleId(),
+                    schedule.getRoom().getRoomNumber(),
+                    schedule.getStaff().getFirstName() + " " + schedule.getStaff().getLastName(),
+                    schedule.getScheduledDate(),
+                });
+            }
+        } catch (SQLException ex) {
+            UIComponents.handleException(dialog, ex, "Failed to load housekeeping records");
+        }
+
+        panel.setLayout(new BorderLayout());
+        panel.add(scrollPane, BorderLayout.CENTER);
+        dialog.add(panel);
+        dialog.setVisible(true);
     }
 } 

@@ -5,6 +5,7 @@ import model.Hotel;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.util.List;
+import java.sql.SQLException;
 
 public interface StaffService extends BaseService<Staff, Integer> {
     record StaffWithRole(String firstName, String lastName, String phone, String role, Date hireDate, BigDecimal salary) {}
@@ -16,4 +17,5 @@ public interface StaffService extends BaseService<Staff, Integer> {
     void updateSalary(Integer staffId, BigDecimal newSalary);
     void transferToHotel(Integer staffId, Integer newHotelId);
     List<StaffWithRole> findAllEmployeesWithRoles(int hotelId);
+    List<Staff> findAvailableHousekeepers(int hotelId, Date date) throws SQLException;
 } 

@@ -2,6 +2,7 @@ import model.User;
 import service.*;
 import service.impl.*;
 import menu.GuestMenuHandler;
+import menu.ReceptionistMenuHandler;
 import menu.AdminMenuHandler;
 import util.UIComponents;
 
@@ -159,8 +160,9 @@ public final class Main {
     }
 
     private static void setupReceptionistPanel(JPanel panel) {
-        // TODO: Implement receptionist-specific UI components
-        panel.add(new JLabel("Receptionist Menu - Implementation pending"));
+        ReceptionistMenuHandler receptionistMenuHandler = new ReceptionistMenuHandler((JFrame) SwingUtilities.getWindowAncestor(panel));
+        panel.setLayout(new BorderLayout());
+        panel.add(receptionistMenuHandler.getMainPanel(), BorderLayout.CENTER);
     }
 
     private static void setupHousekeepingPanel(JPanel panel) {

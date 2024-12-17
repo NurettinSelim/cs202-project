@@ -110,4 +110,20 @@ public class UserServiceImpl extends BaseServiceImpl<User, Integer> implements U
     public boolean isLoggedIn() {
         return currentUser != null;
     }
+
+    @Override
+    public int getCurrentHotelId() {
+        String sql = "SELECT hotel_id FROM staff WHERE user_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, currentUser.getUserId());
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("hotel_id");
+            }
+            return -1;
+        } catch (SQLException e) {
+            return -1;
+        }
+    }
 }

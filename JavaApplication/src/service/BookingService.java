@@ -23,12 +23,6 @@ public interface BookingService extends BaseService<Booking, Integer> {
 
     void assignRoom(Integer bookingId, Room room, int guestsInRoom);
 
-    void updateStatus(Integer bookingId, BookingStatus newStatus);
-
-    void checkIn(Integer bookingId);
-
-    void checkOut(Integer bookingId);
-
     boolean canBeCancelled(Integer bookingId);
 
     double calculateTotalPrice(Integer bookingId);
@@ -43,4 +37,7 @@ public interface BookingService extends BaseService<Booking, Integer> {
     void cancel(Integer bookingId);
      
     ArrayList<Booking> findAllWithGuest();
+
+    void updateBooking(Booking booking);
+
 }

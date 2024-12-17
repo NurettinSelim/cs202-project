@@ -4,38 +4,26 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 
 public class Payment {
-    private Booking booking;
-    private int paymentNumber;
+    private int paymentId;
+    private int bookingId;
     private BigDecimal amount;
     private Timestamp paymentDate;
-    private ReceptionistStaff processedBy;
+    private String paymentMethod;
 
-    // Constructors
-    public Payment() {}
-
-    public Payment(Booking booking, int paymentNumber, BigDecimal amount, Timestamp paymentDate, ReceptionistStaff processedBy) {
-        this.booking = booking;
-        this.paymentNumber = paymentNumber;
-        this.amount = amount;
-        this.paymentDate = paymentDate;
-        this.processedBy = processedBy;
+    public int getPaymentId() {
+        return paymentId;
     }
 
-    // Getters and Setters
-    public Booking getBooking() {
-        return booking;
+    public void setPaymentId(int paymentId) {
+        this.paymentId = paymentId;
     }
 
-    public void setBooking(Booking booking) {
-        this.booking = booking;
+    public int getBookingId() {
+        return bookingId;
     }
 
-    public int getPaymentNumber() {
-        return paymentNumber;
-    }
-
-    public void setPaymentNumber(int paymentNumber) {
-        this.paymentNumber = paymentNumber;
+    public void setBookingId(int bookingId) {
+        this.bookingId = bookingId;
     }
 
     public BigDecimal getAmount() {
@@ -54,22 +42,11 @@ public class Payment {
         this.paymentDate = paymentDate;
     }
 
-    public ReceptionistStaff getProcessedBy() {
-        return processedBy;
+    public String getPaymentMethod() {
+        return paymentMethod;
     }
 
-    public void setProcessedBy(ReceptionistStaff processedBy) {
-        this.processedBy = processedBy;
-    }
-
-    @Override
-    public String toString() {
-        return "Payment{" +
-                "booking=" + booking.getBookingId() +
-                ", paymentNumber=" + paymentNumber +
-                ", amount=" + amount +
-                ", paymentDate=" + paymentDate +
-                ", processedBy=" + processedBy +
-                '}';
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
     }
 } 
