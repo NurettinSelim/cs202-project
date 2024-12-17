@@ -1,158 +1,144 @@
 package menu;
 
-import util.DatabaseConnection;
+import controller.HousekeepingMenuController;
+import model.*;
+import util.UIComponents;
 
-import java.sql.*;
-import java.util.Scanner;
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.sql.SQLException;
+import java.util.List;
 
 public class HousekeepingMenuHandler {
-    private static Scanner scanner = new Scanner(System.in);
+    private final HousekeepingMenuController housekeepingMenuController;
+    private JPanel mainPanel;
+    private final JFrame parentFrame;
 
-    public static void handleMenu() {
-        while (true) {
-            displayMenu();
-            int choice = getUserChoice();
+    public HousekeepingMenuHandler(JFrame parentFrame) {
+        this.parentFrame = parentFrame;
+        this.housekeepingMenuController = new HousekeepingMenuController();
+    }
 
-            switch (choice) {
-                case 1:
-                    viewPendingTasks();
-                    break;
-                case 2:
-                    viewCompletedTasks();
-                    break;
-                case 3:
-                    updateTaskStatus();
-                    break;
-                case 4:
-                    viewSchedule();
-                    break;
-                case 5:
+    public JPanel getMainPanel() {
+        if (mainPanel == null) {
+            createMainPanel();
+        }
+        return mainPanel;
+    }
+
+    private void createMainPanel() {
+        mainPanel = UIComponents.createButtonPanel();
+        GridBagConstraints gbc = UIComponents.createGBC();
+
+        // Create buttons for all housekeeping functionalities
+        JButton viewPendingBtn = UIComponents.createStyledButton("View Pending Tasks");
+        JButton viewCompletedBtn = UIComponents.createStyledButton("View Completed Tasks");
+        JButton updateStatusBtn = UIComponents.createStyledButton("Update Task Status");
+        JButton viewScheduleBtn = UIComponents.createStyledButton("View My Schedule");
+
+        // Add action listeners
+        viewPendingBtn.addActionListener(e -> showPendingTasksDialog());
+        viewCompletedBtn.addActionListener(e -> showCompletedTasksDialog());
+        updateStatusBtn.addActionListener(e -> showUpdateTaskStatusDialog());
+        viewScheduleBtn.addActionListener(e -> showMyScheduleDialog());
+
+        // Add components to panel
+        mainPanel.add(viewPendingBtn, gbc);
+        mainPanel.add(viewCompletedBtn, gbc);
+        mainPanel.add(updateStatusBtn, gbc);
+        mainPanel.add(viewScheduleBtn, gbc);
+    }
+
+    private JPanel createTaskTablePanel(List<HousekeepingSchedule> tasks, boolean showCompleteButton, JDialog dialog) {
+        JPanel panel = UIComponents.createMainPanel();
+
+        String[] columns = {"Schedule ID", "Room", "Date", "Status"};
+        DefaultTableModel model = new DefaultTableModel(columns, 0);
+        JTable table = UIComponents.createTable(model, false);
+        JScrollPane scrollPane = new JScrollPane(table);
+
+        for (HousekeepingSchedule task : tasks) {
+            model.addRow(new Object[]{
+                task.getScheduleId(),
+                task.getRoom().getRoomNumber(),
+                task.getScheduledDate(),
+                task.getStatus().getStatusName()
+            });
+        }
+
+        panel.setLayout(new BorderLayout());
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        if (showCompleteButton) {
+            JButton completeButton = UIComponents.createStyledButton("Mark as Completed");
+            completeButton.addActionListener(e -> {
+                int selectedRow = table.getSelectedRow();
+                if (selectedRow == -1) {
+                    UIComponents.showError(dialog, "Please select a task to complete");
                     return;
-                default:
-                    System.out.println("Invalid choice. Please try again.");
-            }
+                }
+
+                try {
+                    int scheduleId = (int) table.getValueAt(selectedRow, 0);
+                    housekeepingMenuController.updateTaskStatus(scheduleId);
+                    model.removeRow(selectedRow);
+                    UIComponents.showInfo(dialog, "Task marked as completed!");
+                } catch (SQLException ex) {
+                    UIComponents.handleException(dialog, ex, "Failed to update task status");
+                }
+            });
+            panel.add(completeButton, BorderLayout.SOUTH);
         }
+
+        return panel;
     }
 
-    private static void displayMenu() {
-        System.out.println("\n=== Housekeeping Menu ===");
-        System.out.println("1. View Pending Tasks");
-        System.out.println("2. View Completed Tasks");
-        System.out.println("3. Update Task Status");
-        System.out.println("4. View My Cleaning Schedule");
-        System.out.println("5. Return to Main Menu");
-        System.out.print("Enter your choice: ");
-    }
-
-    private static int getUserChoice() {
+    private void showPendingTasksDialog() {
+        JDialog dialog = UIComponents.createStyledDialog(parentFrame, "Pending Housekeeping Tasks", UIComponents.LARGE_DIALOG_SIZE);
         try {
-            return Integer.parseInt(scanner.nextLine());
-        } catch (NumberFormatException e) {
-            return -1;
+            List<HousekeepingSchedule> tasks = housekeepingMenuController.viewPendingTasks();
+            JPanel panel = createTaskTablePanel(tasks, false, dialog);
+            dialog.add(panel);
+            dialog.setVisible(true);
+        } catch (SQLException ex) {
+            UIComponents.handleException(dialog, ex, "Failed to load pending tasks");
         }
     }
 
-    private static void viewPendingTasks() {
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(
-                     "SELECT h.schedule_id, r.room_number, h.cleaning_date " +
-                             "FROM housekeeping_schedule h " +
-                             "JOIN rooms r ON h.room_id = r.room_id " +
-                             "WHERE h.status = 'PENDING' " +
-                             "ORDER BY h.cleaning_date")) {
-
-            ResultSet rs = stmt.executeQuery();
-            System.out.println("\nPending Tasks:");
-            System.out.println("Schedule ID | Room | Date");
-            System.out.println("-------------------------");
-
-            while (rs.next()) {
-                System.out.printf("%11d | %s | %s%n",
-                        rs.getInt("schedule_id"),
-                        rs.getString("room_number"),
-                        rs.getDate("cleaning_date"));
-            }
-        } catch (SQLException e) {
-            System.err.println("Error viewing pending tasks: " + e.getMessage());
+    private void showCompletedTasksDialog() {
+        JDialog dialog = UIComponents.createStyledDialog(parentFrame, "Completed Housekeeping Tasks", UIComponents.LARGE_DIALOG_SIZE);
+        try {
+            List<HousekeepingSchedule> tasks = housekeepingMenuController.viewCompletedTasks();
+            JPanel panel = createTaskTablePanel(tasks, false, dialog);
+            dialog.add(panel);
+            dialog.setVisible(true);
+        } catch (SQLException ex) {
+            UIComponents.handleException(dialog, ex, "Failed to load completed tasks");
         }
     }
 
-    private static void viewCompletedTasks() {
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(
-                     "SELECT h.schedule_id, r.room_number, h.cleaning_date, h.completion_date " +
-                             "FROM housekeeping_schedule h " +
-                             "JOIN rooms r ON h.room_id = r.room_id " +
-                             "WHERE h.status = 'COMPLETED' " +
-                             "ORDER BY h.completion_date DESC")) {
-
-            ResultSet rs = stmt.executeQuery();
-            System.out.println("\nCompleted Tasks:");
-            System.out.println("Schedule ID | Room | Cleaning Date | Completion Date");
-            System.out.println("------------------------------------------------");
-
-            while (rs.next()) {
-                System.out.printf("%11d | %s | %s | %s%n",
-                        rs.getInt("schedule_id"),
-                        rs.getString("room_number"),
-                        rs.getDate("cleaning_date"),
-                        rs.getDate("completion_date"));
-            }
-        } catch (SQLException e) {
-            System.err.println("Error viewing completed tasks: " + e.getMessage());
+    private void showUpdateTaskStatusDialog() {
+        JDialog dialog = UIComponents.createStyledDialog(parentFrame, "Update Task Status", UIComponents.LARGE_DIALOG_SIZE);
+        try {
+            List<HousekeepingSchedule> tasks = housekeepingMenuController.viewPendingTasks();
+            JPanel panel = createTaskTablePanel(tasks, true, dialog);
+            dialog.add(panel);
+            dialog.setVisible(true);
+        } catch (SQLException ex) {
+            UIComponents.handleException(dialog, ex, "Failed to load tasks");
         }
     }
 
-    private static void updateTaskStatus() {
-        try (Connection conn = DatabaseConnection.getConnection()) {
-            System.out.print("Enter schedule ID to mark as completed: ");
-            int scheduleId = Integer.parseInt(scanner.nextLine());
-
-            PreparedStatement stmt = conn.prepareStatement(
-                    "UPDATE housekeeping_schedule SET status = 'COMPLETED', " +
-                            "completion_date = CURRENT_DATE " +
-                            "WHERE schedule_id = ? AND status = 'PENDING'");
-            stmt.setInt(1, scheduleId);
-
-            int affected = stmt.executeUpdate();
-            if (affected > 0) {
-                System.out.println("Task marked as completed!");
-            } else {
-                System.out.println("Could not update task. It may not exist or already be completed.");
-            }
-        } catch (SQLException e) {
-            System.err.println("Error updating task status: " + e.getMessage());
-        }
-    }
-
-    private static void viewSchedule() {
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(
-                     "SELECT h.schedule_id, r.room_number, h.cleaning_date, h.status " +
-                             "FROM housekeeping_schedule h " +
-                             "JOIN rooms r ON h.room_id = r.room_id " +
-                             "WHERE h.housekeeper_id = ? " +
-                             "AND h.cleaning_date >= CURRENT_DATE " +
-                             "ORDER BY h.cleaning_date")) {
-
-            System.out.print("Enter your housekeeper ID: ");
-            int housekeeperId = Integer.parseInt(scanner.nextLine());
-            stmt.setInt(1, housekeeperId);
-
-            ResultSet rs = stmt.executeQuery();
-            System.out.println("\nMy Cleaning Schedule:");
-            System.out.println("Schedule ID | Room | Date | Status");
-            System.out.println("--------------------------------");
-
-            while (rs.next()) {
-                System.out.printf("%11d | %s | %s | %s%n",
-                        rs.getInt("schedule_id"),
-                        rs.getString("room_number"),
-                        rs.getDate("cleaning_date"),
-                        rs.getString("status"));
-            }
-        } catch (SQLException e) {
-            System.err.println("Error viewing schedule: " + e.getMessage());
+    private void showMyScheduleDialog() {
+        JDialog dialog = UIComponents.createStyledDialog(parentFrame, "My Cleaning Schedule", UIComponents.LARGE_DIALOG_SIZE);
+        try {
+            List<HousekeepingSchedule> tasks = housekeepingMenuController.viewMySchedule();
+            JPanel panel = createTaskTablePanel(tasks, false, dialog);
+            dialog.add(panel);
+            dialog.setVisible(true);
+        } catch (SQLException ex) {
+            UIComponents.handleException(dialog, ex, "Failed to load schedule");
         }
     }
 } 

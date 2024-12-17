@@ -4,31 +4,18 @@ import service.impl.*;
 import menu.GuestMenuHandler;
 import menu.ReceptionistMenuHandler;
 import menu.AdminMenuHandler;
+import menu.HousekeepingMenuHandler;
 import util.UIComponents;
 
 import javax.swing.*;
 import java.awt.*;
 import java.util.List;
 
-/**
- * Main application class for the Hotel Management System.
- * This class handles the initialization of the application and manages the main UI flow.
- */
 public final class Main {
     private static final UserService userService = new UserServiceImpl();
     private static JFrame mainFrame;
 
-    /**
-     * Private constructor to prevent instantiation.
-     */
-    private Main() {
-        throw new AssertionError("Main is a utility class and cannot be instantiated");
-    }
 
-    /**
-     * Application entry point.
-     * @param args command line arguments (not used)
-     */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             try {
@@ -91,7 +78,7 @@ public final class Main {
     private static void showRoleSpecificWindow() {
         try {
             User currentUser = userService.getCurrentUser();
-            String userRole = userService.getCurrentUserRole();
+            String userRole = userService.getCurrentRole();
             
             mainFrame.dispose();
             JFrame roleFrame = new JFrame("Hotel Management System - " + userRole);
@@ -166,8 +153,9 @@ public final class Main {
     }
 
     private static void setupHousekeepingPanel(JPanel panel) {
-        // TODO: Implement housekeeping-specific UI components
-        panel.add(new JLabel("Housekeeping Menu - Implementation pending"));
+        HousekeepingMenuHandler housekeepingMenuHandler = new HousekeepingMenuHandler((JFrame) SwingUtilities.getWindowAncestor(panel));
+        panel.setLayout(new BorderLayout());
+        panel.add(housekeepingMenuHandler.getMainPanel(), BorderLayout.CENTER);
     }
 
     // Helper class for JList items
