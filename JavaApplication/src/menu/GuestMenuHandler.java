@@ -242,7 +242,7 @@ public class GuestMenuHandler {
                                 room.getRoomType().getTypeName(),
                                 room.getRoomType().getCapacity(),
                                 room.getRoomType().getBasePrice(),
-                                "Available"
+                                room.getStatus().getStatusName()
                             });
                         }
                         scrollPane.setVisible(true);

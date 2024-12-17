@@ -229,21 +229,74 @@ public class AdminMenuHandler {
         JDialog dialog = UIComponents.createStyledDialog(parentFrame, "Manage Room Status", UIComponents.SMALL_DIALOG_SIZE);
         JPanel panel = UIComponents.createMainPanel();
 
-        JTextField roomNumberField = new JTextField(10);
-        JTextField statusIdField = new JTextField(10);
+        // Create combo box for rooms
+        DefaultComboBoxModel<Room> roomModel = new DefaultComboBoxModel<>();
+        JComboBox<Room> roomCombo = new JComboBox<>(roomModel);
+        roomCombo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                if (value instanceof Room) {
+                    Room room = (Room) value;
+                    value = String.format("Room %s - %s (Current Status: %s)", 
+                        room.getRoomNumber(),
+                        room.getRoomType().getTypeName(),
+                        room.getStatus().getStatusName()
+                    );
+                }
+                return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            }
+        });
+
+        // Create combo box for statuses
+        DefaultComboBoxModel<RoomStatus> statusModel = new DefaultComboBoxModel<>();
+        JComboBox<RoomStatus> statusCombo = new JComboBox<>(statusModel);
+        statusCombo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                if (value instanceof RoomStatus) {
+                    value = ((RoomStatus) value).getStatusName();
+                }
+                return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            }
+        });
+
+        // Populate combo boxes
+        try {
+            List<Room> rooms = adminMenuController.getRooms();
+            for (Room room : rooms) {
+                roomModel.addElement(room);
+            }
+
+            List<RoomStatus> statuses = adminMenuController.getRoomStatuses();
+            for (RoomStatus status : statuses) {
+                statusModel.addElement(status);
+            }
+        } catch (SQLException ex) {
+            UIComponents.showError(dialog, "Error loading rooms and statuses: " + ex.getMessage());
+            dialog.dispose();
+            return;
+        }
 
         panel.setLayout(new GridLayout(3, 2, 5, 5));
-        panel.add(new JLabel("Room Number:"));
-        panel.add(roomNumberField);
-        panel.add(new JLabel("New Status ID:"));
-        panel.add(statusIdField);
+        panel.add(new JLabel("Select Room:"));
+        panel.add(roomCombo);
+        panel.add(new JLabel("New Status:"));
+        panel.add(statusCombo);
 
         JButton updateButton = UIComponents.createStyledButton("Update Status");
         updateButton.addActionListener(e -> {
             try {
+                Room selectedRoom = (Room) roomCombo.getSelectedItem();
+                RoomStatus selectedStatus = (RoomStatus) statusCombo.getSelectedItem();
+                
+                if (selectedRoom == null || selectedStatus == null) {
+                    UIComponents.showError(dialog, "Please select both room and status");
+                    return;
+                }
+
                 adminMenuController.manageRoomStatus(
-                    Integer.parseInt(roomNumberField.getText()),
-                    Integer.parseInt(statusIdField.getText())
+                    Integer.parseInt(selectedRoom.getRoomNumber()),
+                    selectedStatus.getStatusId()
                 );
                 UIComponents.showInfo(dialog, "Room status updated successfully!");
                 dialog.dispose();
