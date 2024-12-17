@@ -10,6 +10,7 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class AdminMenuHandler {
@@ -410,7 +411,7 @@ public class AdminMenuHandler {
         JScrollPane scrollPane = new JScrollPane(table);
 
         try {
-            List<Booking> bookings = adminMenuController.viewBookingRecords();
+            ArrayList<Booking> bookings = adminMenuController.viewBookingRecords();
             for (Booking booking : bookings) {
                 model.addRow(new Object[]{
                     booking.getBookingId(),

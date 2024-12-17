@@ -7,7 +7,6 @@ import model.*;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
-import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -145,8 +144,8 @@ public class AdminMenuController extends BaseControlller {
         return revenueService.generateRevenueReport(hotelId);
     }
 
-    public List<Booking> viewBookingRecords() throws SQLException {
-        return bookingService.findAll();
+    public ArrayList<Booking> viewBookingRecords() throws SQLException {
+        return bookingService.findAllWithGuest();
     }
 
     public List<HousekeepingSchedule> viewHousekeepingRecords() throws SQLException {

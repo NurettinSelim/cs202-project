@@ -4,7 +4,6 @@ import model.*;
 import service.BookingService;
 import util.DatabaseConnection;
 
-import java.lang.reflect.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -55,13 +54,14 @@ public class BookingServiceImpl extends BaseServiceImpl<Booking, Integer> implem
             booking.setConfirmedBy(confirmedBy);
         }
 
-
         return booking;
     }
 
     @Override
     protected String getCreateSQL() {
-        return String.format("INSERT INTO %s (guest_id, check_in_date, check_out_date, status_id, total_guests, created_at, confirmed_by) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)", getTableName());
+        return String.format(
+                "INSERT INTO %s (guest_id, check_in_date, check_out_date, status_id, total_guests, created_at, confirmed_by) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)",
+                getTableName());
     }
 
     @Override
@@ -415,5 +415,30 @@ public class BookingServiceImpl extends BaseServiceImpl<Booking, Integer> implem
         } catch (SQLException e) {
             throw new RuntimeException("Error cancelling booking", e);
         }
+    }
+
+    @Override
+    public ArrayList<Booking> findAllWithGuest() {
+        String sql = """
+                SELECT b.*, u.*, bs.status_name
+                FROM bookings b
+                JOIN users u ON b.guest_id = u.user_id
+                JOIN booking_statuses bs ON b.status_id = bs.status_id
+                """;
+        ArrayList<Booking> bookings = new ArrayList<>();
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                Booking booking = mapRow(rs);
+                booking.setGuest(new Guest(rs.getInt("user_id"), rs.getString("first_name"), rs.getString("last_name"),
+                        rs.getString("phone"), rs.getTimestamp("created_at")));
+                booking.setStatus(new BookingStatus(rs.getInt("status_id"), rs.getString("status_name")));
+                bookings.add(booking);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error finding all bookings with guest", e);
+        }
+        return bookings;
     }
 }

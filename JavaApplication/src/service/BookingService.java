@@ -41,4 +41,6 @@ public interface BookingService extends BaseService<Booking, Integer> {
     ArrayList<Booking> viewBookingsByGuest(int guestId);
 
     void cancel(Integer bookingId);
+     
+    ArrayList<Booking> findAllWithGuest();
 }

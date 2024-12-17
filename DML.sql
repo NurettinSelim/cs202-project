@@ -211,7 +211,10 @@ WHERE b.status_id = 4 -- CHECKED_OUT
 AND h.hotel_id = ?; 
 
 -- View All Booking Records
-SELECT * FROM bookings;
+SELECT b.*, u.*, bs.status_name
+FROM bookings b
+JOIN users u ON b.guest_id = u.user_id
+JOIN booking_statuses bs ON b.status_id = bs.status_id
 
 -- View All Housekeeping Records
 SELECT * FROM housekeeping_schedule;
