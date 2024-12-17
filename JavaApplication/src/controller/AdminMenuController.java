@@ -14,17 +14,16 @@ import java.util.ArrayList;
 
 public class AdminMenuController extends BaseControlller {
     private static List<String> menuItems = Arrays.asList(
-        "1. Add Room",
-        "2. Delete Room",
-        "3. Manage Room Status",
-        "4. Add User Account",
-        "5. View User Accounts",
-        "6. Generate Revenue Report",
-        "7. View All Booking Records",
-        "8. View All Housekeeping Records",
-        "9. View Most Booked Room Types",
-        "10. View All Employees"
-    );
+            "1. Add Room",
+            "2. Delete Room",
+            "3. Manage Room Status",
+            "4. Add User Account",
+            "5. View User Accounts",
+            "6. Generate Revenue Report",
+            "7. View All Booking Records",
+            "8. View All Housekeeping Records",
+            "9. View Most Booked Room Types",
+            "10. View All Employees");
 
     private final RoomService roomService;
     private final UserService userService;
@@ -48,7 +47,7 @@ public class AdminMenuController extends BaseControlller {
         User currentUser = getCurrentUser();
         String sql = "SELECT hotel_id FROM staff WHERE user_id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, currentUser.getUserId());
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
@@ -68,7 +67,7 @@ public class AdminMenuController extends BaseControlller {
     public List<RoomStatus> getRoomStatuses() throws SQLException {
         String sql = "SELECT * FROM room_statuses";
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
             ResultSet rs = stmt.executeQuery();
             List<RoomStatus> statuses = new ArrayList<>();
             while (rs.next()) {
@@ -88,15 +87,15 @@ public class AdminMenuController extends BaseControlller {
         hotel.setHotelId(hotelId);
         room.setHotel(hotel);
         room.setRoomNumber(String.valueOf(roomNumber));
-        
+
         RoomType roomType = new RoomType();
         roomType.setTypeId(typeId);
         room.setRoomType(roomType);
-        
+
         RoomStatus status = new RoomStatus();
         status.setStatusId(statusId);
         room.setStatus(status);
-        
+
         roomService.create(room);
     }
 
@@ -111,7 +110,7 @@ public class AdminMenuController extends BaseControlller {
         int hotelId = getCurrentUserHotelId();
         String sql = "DELETE FROM rooms WHERE hotel_id = ? AND room_number = ?";
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, hotelId);
             stmt.setInt(2, roomNumber);
             stmt.executeUpdate();

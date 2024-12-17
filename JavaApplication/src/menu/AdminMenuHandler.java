@@ -331,17 +331,24 @@ public class AdminMenuHandler {
         addButton.addActionListener(e -> {
             try {
                 adminMenuController.addUser(
-                    firstNameField.getText(),
-                    lastNameField.getText(),
-                    phoneField.getText()
+                    firstNameField.getText().trim(),
+                    lastNameField.getText().trim(),
+                    phoneField.getText().trim()
                 );
                 UIComponents.showInfo(dialog, "User added successfully!");
                 dialog.dispose();
-            } catch (SQLException ex) {
-                UIComponents.showError(dialog, "Error adding user: " + ex.getMessage());
+            } catch (Exception ex) {
+                String context = "Failed to add user";
+                if (ex.getCause().getMessage().contains("users_chk_1")) {
+                    context = "Phone number must be in format: XXX-XXX-XXXX";
+                } else if (ex.getCause().getMessage().contains("Duplicate entry")) {
+                    context = "A user with this phone number already exists";
+                }
+                UIComponents.handleException(dialog, ex, context);
             }
         });
 
+        panel.add(new JLabel("Phone Format: XXX-XXX-XXXX"));
         panel.add(addButton);
         dialog.add(panel);
         dialog.setVisible(true);
