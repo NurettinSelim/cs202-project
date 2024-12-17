@@ -8,22 +8,13 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
 
-public class UserServiceImpl extends BaseServiceImpl<User, Integer> implements UserService {
-    private static User currentUser = null;
-    private static String currentUserRole = null;
+public class UserServiceImpl implements UserService {
+    private static User currentUser;
+    private static String currentRole;
 
-    @Override
-    protected String getTableName() {
-        return "users";
-    }
-
-    @Override
-    protected String getIdColumnName() {
-        return "user_id";
-    }
-
-    @Override
     protected User mapRow(ResultSet rs) throws SQLException {
         User user = new User();
         user.setUserId(rs.getInt("user_id"));
@@ -34,96 +25,143 @@ public class UserServiceImpl extends BaseServiceImpl<User, Integer> implements U
         return user;
     }
 
-    @Override
-    protected String getCreateSQL() {
-        return String.format("INSERT INTO %s (first_name, last_name, phone, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)", getTableName());
-    }
-
-    @Override
-    protected void setCreateStatement(PreparedStatement stmt, User user) throws SQLException {
-        stmt.setString(1, user.getFirstName());
-        stmt.setString(2, user.getLastName());
-        stmt.setString(3, user.getPhone());
-    }
-
-    @Override
-    protected void setUpdateStatement(PreparedStatement stmt, User user) throws SQLException {
-        stmt.setString(3, user.getFirstName());
-        stmt.setString(4, user.getLastName());
-        stmt.setString(5, user.getPhone());
-        stmt.setInt(6, user.getUserId());
-    }
-
-    @Override
-    public String getCurrentUserRole() {
-        if (currentUserRole != null) {
-            return currentUserRole;
-        }
-        String sql = """
-                SELECT * , 'ADMINISTRATOR' AS role FROM administrator_staff WHERE user_id = ?
-                UNION
-                SELECT * , 'RECEPTIONIST' AS role FROM receptionist_staff WHERE user_id = ?
-                UNION
-                SELECT * , 'HOUSEKEEPING' AS role FROM housekeeping_staff WHERE user_id = ?
-                UNION
-                SELECT * , 'GUEST' AS role FROM guests WHERE user_id = ?
-                """;
+    public User create(User user) {
+        String sql = "INSERT INTO users (first_name, last_name, phone, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, currentUser.getUserId());
-            stmt.setInt(2, currentUser.getUserId());
-            stmt.setInt(3, currentUser.getUserId());
-            stmt.setInt(4, currentUser.getUserId());
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                currentUserRole = rs.getString("role");
-                return currentUserRole;
-            }
-            return null;
+            stmt.setString(1, user.getFirstName());
+            stmt.setString(2, user.getLastName());
+            stmt.setString(3, user.getPhone());
+            stmt.executeUpdate();
+            return user;
         } catch (SQLException e) {
-            throw new RuntimeException("Error finding current user", e);
+            throw new RuntimeException("Error getting user by id", e);
         }
     }
 
-    @Override
-    public User login(Integer userId) {
-        User user = findById(userId);
-        if (user != null) {
-            currentUser = user;
-            getCurrentUserRole();
+    public ArrayList<User> findAll() {
+        String sql = "SELECT * FROM users";
+
+        ArrayList<User> users = new ArrayList<>();
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                users.add(mapRow(rs));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error getting all users", e);
         }
-        return user;
+        return users;
     }
 
-    @Override
+    public HashMap<User, String> findAllWithRole() {
+        String sql = """
+                SELECT u.*, 'ADMINISTRATOR' as role
+                FROM users u
+                JOIN administrator_staff a ON u.user_id = a.user_id
+
+                UNION
+
+                SELECT u.*, 'RECEPTIONIST' as role
+                FROM users u
+                JOIN receptionist_staff r ON u.user_id = r.user_id
+
+                UNION
+
+                SELECT u.*, 'HOUSEKEEPING' as role
+                FROM users u
+                JOIN housekeeping_staff h ON u.user_id = h.user_id;
+                """;
+
+        HashMap<User, String> users = new HashMap<>();
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                User user = mapRow(rs);
+                users.put(user, rs.getString("role"));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error getting all users", e);
+        }
+        return users;
+    }
+
     public User getCurrentUser() {
         return currentUser;
     }
 
-    @Override
-    public void logout() {
-        this.currentUser = null;
-        this.currentUserRole = null;
+    public String getCurrentRole() {
+        return currentRole;
     }
 
-    @Override
-    public boolean isLoggedIn() {
-        return currentUser != null;
+    public void login(int userId) {
+        String sql = "SELECT * FROM users WHERE user_id = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                currentUser = mapRow(rs);
+                getRole(userId);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error logging in", e);
+        }
     }
 
-    @Override
+    private void getRole(int userId) {
+        String sql = """
+                SELECT u.*, 'ADMINISTRATOR' as role
+                FROM users u
+                JOIN administrator_staff a ON u.user_id = a.user_id
+                WHERE u.user_id = ?
+
+                UNION
+
+                SELECT u.*, 'RECEPTIONIST' as role
+                FROM users u
+                JOIN receptionist_staff r ON u.user_id = r.user_id
+                WHERE u.user_id = ?
+
+                UNION
+
+                SELECT u.*, 'HOUSEKEEPING' as role
+                FROM users u
+                JOIN housekeeping_staff h ON u.user_id = h.user_id
+                WHERE u.user_id = ?;
+                """;
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            stmt.setInt(2, userId);
+            stmt.setInt(3, userId);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                currentRole = rs.getString("role");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error getting role", e);
+        }
+    }
+
     public int getCurrentHotelId() {
         String sql = "SELECT hotel_id FROM staff WHERE user_id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, currentUser.getUserId());
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 return rs.getInt("hotel_id");
             }
-            return -1;
         } catch (SQLException e) {
-            return -1;
+            throw new RuntimeException("Error getting hotel id", e);
         }
+        return -1;
+    }
+
+    public void logout() {
+        currentUser = null;
     }
 }
