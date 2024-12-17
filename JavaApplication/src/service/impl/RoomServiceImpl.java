@@ -321,10 +321,9 @@ public class RoomServiceImpl extends BaseServiceImpl<Room, String> implements Ro
                     JOIN booking_rooms br ON b.booking_id = br.booking_id
                     WHERE br.room_number = r.room_number
                     AND b.status_id IN (2, 3)  -- CONFIRMED or CHECKED_IN
-                    AND r.status_id = 1 -- AVAILABLE
                     AND b.check_in_date < ? -- check_out_date
                     AND b.check_out_date > ? -- check_in_date
-                );
+                ) AND r.status_id = 1;
                 """;
 
         ArrayList<Room> rooms = new ArrayList<>();
