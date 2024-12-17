@@ -100,6 +100,14 @@ public class AdminMenuController extends BaseControlller {
         
         roomService.create(room);
     }
+
+    public List<Room> getRooms() throws SQLException {
+        int hotelId = getCurrentUserHotelId();
+        Hotel hotel = new Hotel();
+        hotel.setHotelId(hotelId);
+        return roomService.findByHotel(hotel);
+    }
+
     public void deleteRoom(int roomNumber) throws SQLException {
         int hotelId = getCurrentUserHotelId();
         String sql = "DELETE FROM rooms WHERE hotel_id = ? AND room_number = ?";

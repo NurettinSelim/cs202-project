@@ -163,21 +163,55 @@ public class AdminMenuHandler {
         JDialog dialog = UIComponents.createStyledDialog(parentFrame, "Delete Room", UIComponents.SMALL_DIALOG_SIZE);
         JPanel panel = UIComponents.createMainPanel();
 
-        JTextField roomNumberField = new JTextField(10);
+        // Create combo box for rooms
+        DefaultComboBoxModel<Room> roomModel = new DefaultComboBoxModel<>();
+        JComboBox<Room> roomCombo = new JComboBox<>(roomModel);
+        roomCombo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                if (value instanceof Room) {
+                    Room room = (Room) value;
+                    value = String.format("Room %s - %s (%s)", 
+                        room.getRoomNumber(),
+                        room.getRoomType().getTypeName(),
+                        room.getStatus().getStatusName()
+                    );
+                }
+                return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            }
+        });
+
+        // Populate combo box
+        try {
+            List<Room> rooms = adminMenuController.getRooms();
+            for (Room room : rooms) {
+                roomModel.addElement(room);
+            }
+        } catch (SQLException ex) {
+            UIComponents.showError(dialog, "Error loading rooms: " + ex.getMessage());
+            dialog.dispose();
+            return;
+        }
 
         panel.setLayout(new GridLayout(2, 2, 5, 5));
-        panel.add(new JLabel("Room Number:"));
-        panel.add(roomNumberField);
+        panel.add(new JLabel("Select Room:"));
+        panel.add(roomCombo);
 
         JButton deleteButton = UIComponents.createStyledButton("Delete Room");
         deleteButton.addActionListener(e -> {
             try {
+                Room selectedRoom = (Room) roomCombo.getSelectedItem();
+                
+                if (selectedRoom == null) {
+                    UIComponents.showError(dialog, "Please select a room");
+                    return;
+                }
+
                 if (UIComponents.showConfirmDialog(dialog, 
-                    "Are you sure you want to delete this room?\nThis action cannot be undone if the room has no active bookings or pending tasks.", 
+                    "Are you sure you want to delete room " + selectedRoom.getRoomNumber() + "?\n" +
+                    "This action cannot be undone if the room has no active bookings or pending tasks.", 
                     "Confirm Deletion")) {
-                    adminMenuController.deleteRoom(
-                        Integer.parseInt(roomNumberField.getText())
-                    );
+                    adminMenuController.deleteRoom(Integer.parseInt(selectedRoom.getRoomNumber()));
                     UIComponents.showInfo(dialog, "Room deleted successfully!");
                     dialog.dispose();
                 }
