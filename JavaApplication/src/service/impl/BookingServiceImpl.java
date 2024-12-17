@@ -13,8 +13,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class BookingServiceImpl implements BookingService {
-    public record RoomTypeStats(String typeName, int bookingCount) {
-    }
 
     public Booking findById(int bookingId) {
         String sql = "SELECT * FROM bookings WHERE booking_id = ?";
@@ -149,8 +147,10 @@ public class BookingServiceImpl implements BookingService {
             throw new RuntimeException("Error cancelling booking", e);
         }
     }
+
     /**
      * will be called in payment service
+     * 
      * @param bookingId
      */
     public void processPayment(int bookingId) {
