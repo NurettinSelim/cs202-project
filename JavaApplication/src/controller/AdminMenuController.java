@@ -6,6 +6,7 @@ import util.DatabaseConnection;
 import model.*;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -29,18 +30,18 @@ public class AdminMenuController extends BaseControlller {
     private final UserService userService;
     private final BookingService bookingService;
     private final HousekeepingScheduleService housekeepingService;
-    private final RevenueService revenueService;
     private final StaffService staffService;
     private final RoomTypeService roomTypeService;
+    private final HotelService hotelService;
 
     public AdminMenuController() {
         this.roomService = new RoomServiceImpl();
         this.userService = new UserServiceImpl();
         this.bookingService = new BookingServiceImpl();
         this.housekeepingService = new HousekeepingScheduleServiceImpl();
-        this.revenueService = new RevenueServiceImpl();
         this.staffService = new StaffServiceImpl();
         this.roomTypeService = new RoomTypeServiceImpl();
+        this.hotelService = new HotelServiceImpl();
     }
 
     private int getCurrentUserHotelId() throws SQLException {
@@ -57,11 +58,9 @@ public class AdminMenuController extends BaseControlller {
         }
     }
 
-    public List<RoomType> getRoomTypes() throws SQLException {
+    public ArrayList<RoomType> getRoomTypes() throws SQLException {
         int hotelId = getCurrentUserHotelId();
-        Hotel hotel = new Hotel();
-        hotel.setHotelId(hotelId);
-        return roomTypeService.findByHotel(hotel);
+        return roomTypeService.findByHotel(hotelId);
     }
 
     public List<RoomStatus> getRoomStatuses() throws SQLException {
@@ -138,12 +137,12 @@ public class AdminMenuController extends BaseControlller {
         return userService.findAll();
     }
 
-    public RevenueService.RevenueReport generateRevenueReport() throws SQLException {
+    public HotelService.Revenue generateRevenueReport() throws SQLException {
         int hotelId = getCurrentUserHotelId();
-        return revenueService.generateRevenueReport(hotelId);
+        return hotelService.getRevenue(hotelId);
     }
 
-    public ArrayList<Booking> viewBookingRecords() throws SQLException {
+    public List<Booking> viewBookingRecords() throws SQLException {
         return bookingService.findAllWithGuest();
     }
 
@@ -151,14 +150,15 @@ public class AdminMenuController extends BaseControlller {
         return housekeepingService.findAll();
     }
 
-    public List<RevenueService.RoomTypeStats> viewMostBookedRoomTypes() throws SQLException {
+    public List<BookingService.RoomTypeStats> viewMostBookedRoomTypes() throws SQLException {
         int hotelId = getCurrentUserHotelId();
-        return revenueService.getMostBookedRoomTypes(hotelId);
+        // TODO: get check in date and check out date from user
+        return bookingService.getMostBookedRoomTypes(hotelId, null, null);
     }
 
-    public List<StaffService.StaffWithRole> viewAllEmployees() throws SQLException {
+    public HashMap<Staff, String> viewAllEmployees() throws SQLException {
         int hotelId = getCurrentUserHotelId();
-        return staffService.findAllEmployeesWithRoles(hotelId);
+        return staffService.findAllWithRole(hotelId);
     }
 
     public void displayMenu() {
