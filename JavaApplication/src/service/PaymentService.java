@@ -2,4 +2,6 @@ package service;
 
 import model.Payment;
 
-public interface PaymentService extends BaseService<Payment, Integer> {} 
+public interface PaymentService {
+    void processPayment(Payment payment);
+} 

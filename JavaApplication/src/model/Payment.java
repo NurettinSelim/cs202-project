@@ -4,19 +4,11 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 
 public class Payment {
-    private int paymentId;
     private int bookingId;
+    private int paymentNumber;
     private BigDecimal amount;
     private Timestamp paymentDate;
-    private String paymentMethod;
-
-    public int getPaymentId() {
-        return paymentId;
-    }
-
-    public void setPaymentId(int paymentId) {
-        this.paymentId = paymentId;
-    }
+    private int processedBy;
 
     public int getBookingId() {
         return bookingId;
@@ -24,6 +16,14 @@ public class Payment {
 
     public void setBookingId(int bookingId) {
         this.bookingId = bookingId;
+    }
+
+    public int getPaymentNumber() {
+        return paymentNumber;
+    }
+
+    public void setPaymentNumber(int paymentNumber) {
+        this.paymentNumber = paymentNumber;
     }
 
     public BigDecimal getAmount() {
@@ -42,11 +42,11 @@ public class Payment {
         this.paymentDate = paymentDate;
     }
 
-    public String getPaymentMethod() {
-        return paymentMethod;
+    public int getProcessedBy() {
+        return processedBy;
     }
 
-    public void setPaymentMethod(String paymentMethod) {
-        this.paymentMethod = paymentMethod;
+    public void setProcessedBy(int processedBy) {
+        this.processedBy = processedBy;
     }
-} 
+}
