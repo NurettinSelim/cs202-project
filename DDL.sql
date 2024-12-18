@@ -10,7 +10,6 @@ CREATE TABLE addresses
     address_id  INT AUTO_INCREMENT PRIMARY KEY,
     street      VARCHAR(100) NOT NULL,
     city        VARCHAR(50)  NOT NULL,
-    state       VARCHAR(50)  NOT NULL,
     country     VARCHAR(50)  NOT NULL,
     postal_code VARCHAR(20)  NOT NULL,
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
