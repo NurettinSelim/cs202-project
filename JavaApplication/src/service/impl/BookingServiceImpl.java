@@ -175,7 +175,7 @@ public class BookingServiceImpl implements BookingService {
                 JOIN rooms r ON br.hotel_id = r.hotel_id AND br.room_number = r.room_number
                 JOIN room_types rt ON r.type_id = rt.type_id
                 WHERE b.check_in_date BETWEEN ? AND ?
-                AND h.hotel_id = ?
+                AND r.hotel_id = ?
                 GROUP BY rt.type_id
                 ORDER BY booking_count DESC;
                 """;
