@@ -425,3 +425,40 @@ BEGIN
 END//
 
 DELIMITER ;
+
+-- Unique index for hotels table
+CREATE UNIQUE INDEX idx_hotel_name_address ON hotels(hotel_name, address_id);
+
+-- Index for users table
+CREATE INDEX idx_users_phone ON users(phone);
+
+-- Index for staff table
+CREATE INDEX idx_staff_hotelID ON staff(hotel_id);
+
+-- Index for room_types table
+CREATE INDEX idx_room_types_hotelID ON room_types(hotel_id);
+
+-- Unique index for room types (hotel and type name)
+CREATE UNIQUE INDEX idx_room_type_name ON room_types(hotel_id, type_name);
+
+-- Index for rooms table
+CREATE INDEX idx_rooms_statusID ON rooms(status_id);
+CREATE INDEX idx_rooms_typeID ON rooms(type_id);
+
+-- Index for bookings table
+CREATE INDEX idx_bookings_guestID ON bookings(guest_id);
+CREATE INDEX idx_bookings_check_in_date ON bookings(check_in_date);
+CREATE INDEX idx_bookings_statusID ON bookings(status_id);
+
+-- Index for booking_rooms table
+CREATE INDEX idx_booking_rooms_bookingID ON booking_rooms(booking_id);
+
+-- Index for payments table
+CREATE INDEX idx_payments_bookingID ON payments(booking_id);
+CREATE INDEX idx_payments_processed_by ON payments(processed_by);
+
+-- Index for housekeeping_schedule table
+CREATE INDEX idx_housekeeping_hotelID_room ON housekeeping_schedule(hotel_id, room_number);
+CREATE INDEX idx_housekeeping_staffID ON housekeeping_schedule(staff_id);
+CREATE INDEX idx_housekeeping_created_by ON housekeeping_schedule(created_by);
+
