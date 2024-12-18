@@ -9,7 +9,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
 
 public class UserServiceImpl implements UserService {
     private static User currentUser;
@@ -55,38 +54,6 @@ public class UserServiceImpl implements UserService {
         return users;
     }
 
-    public HashMap<User, String> findAllWithRole() {
-        String sql = """
-                SELECT u.*, 'ADMINISTRATOR' as role
-                FROM users u
-                JOIN administrator_staff a ON u.user_id = a.user_id
-
-                UNION
-
-                SELECT u.*, 'RECEPTIONIST' as role
-                FROM users u
-                JOIN receptionist_staff r ON u.user_id = r.user_id
-
-                UNION
-
-                SELECT u.*, 'HOUSEKEEPING' as role
-                FROM users u
-                JOIN housekeeping_staff h ON u.user_id = h.user_id;
-                """;
-
-        HashMap<User, String> users = new HashMap<>();
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(sql)) {
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                User user = mapRow(rs);
-                users.put(user, rs.getString("role"));
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Error getting all users", e);
-        }
-        return users;
-    }
 
     public User getCurrentUser() {
         return currentUser;
