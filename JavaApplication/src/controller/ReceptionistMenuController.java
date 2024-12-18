@@ -5,7 +5,6 @@ import service.impl.*;
 import util.DatabaseConnection;
 import model.*;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.List;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -17,21 +16,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ReceptionistMenuController extends BaseControlller {
-    private static List<String> menuItems = Arrays.asList(
-            "1. Add New Booking",
-            "2. Modify Booking",
-            "3. Delete Booking",
-            "4. View Bookings",
-            "5. Process Payment",
-            "6. Assign Housekeeping Task",
-            "7. View Housekeeping Records");
-
     private final BookingService bookingService;
     private final UserService userService;
     private final RoomService roomService;
     private final PaymentService paymentService;
     private final HousekeepingScheduleService housekeepingService;
-    private final StaffService staffService;
 
     public ReceptionistMenuController() {
         this.bookingService = new BookingServiceImpl();
@@ -39,7 +28,6 @@ public class ReceptionistMenuController extends BaseControlller {
         this.roomService = new RoomServiceImpl();
         this.paymentService = new PaymentServiceImpl();
         this.housekeepingService = new HousekeepingScheduleServiceImpl();
-        this.staffService = new StaffServiceImpl();
     }
 
     public List<Room> getAvailableRooms(String checkInDate, String checkOutDate) throws SQLException {
@@ -107,7 +95,7 @@ public class ReceptionistMenuController extends BaseControlller {
     }
 
     public void deleteBooking(int bookingId) throws SQLException {
-        bookingService.cancel(bookingId);
+        bookingService.cancelBooking(bookingId);
     }
 
     public List<Booking> viewAllBookings() throws SQLException {
@@ -117,16 +105,11 @@ public class ReceptionistMenuController extends BaseControlller {
     public void processPayment(int bookingId, BigDecimal amount, String paymentMethod) throws SQLException {
         Payment payment = new Payment();
         payment.setBookingId(bookingId);
+        payment.setPaymentNumber(1);
         payment.setAmount(amount);
-        payment.setPaymentMethod(paymentMethod);
-        payment.setPaymentDate(new java.sql.Timestamp(System.currentTimeMillis()));
-        paymentService.create(payment);
-
-        Booking booking = bookingService.findById(bookingId);
-        BookingStatus paidStatus = new BookingStatus();
-        paidStatus.setStatusId(3);
-        booking.setStatus(paidStatus);
-        bookingService.update(booking);
+        payment.setProcessedBy(userService.getCurrentUser().getUserId());
+        paymentService.processPayment(payment);
+        bookingService.processPayment(bookingId);
     }
 
     public void assignHousekeepingTask(String roomNumber, int staffId, String scheduledDate) throws SQLException {
@@ -156,9 +139,12 @@ public class ReceptionistMenuController extends BaseControlller {
         housekeepingService.create(schedule);
     }
 
-    public List<Staff> getAvailableHousekeepers(String date) throws SQLException {
+    public List<HousekeepingStaff> getAvailableHousekeepers(String date) throws SQLException {
         int hotelId = userService.getCurrentHotelId();
-        return staffService.findAvailableHousekeepers(hotelId, Date.valueOf(date));
+        Hotel hotel = new Hotel();
+        hotel.setHotelId(hotelId);
+        return new ArrayList<>();
+        // return staffService.findAvailableHousekeepers(hotelId, Date.valueOf(date));
     }
 
     public List<HousekeepingSchedule> viewHousekeepingRecords() throws SQLException {
