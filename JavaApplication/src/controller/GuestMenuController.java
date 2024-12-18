@@ -38,11 +38,11 @@ public class GuestMenuController extends BaseControlller {
 
     public ArrayList<Booking> viewMyBookings() {
         int guestId = super.getCurrentUser().getUserId();
-        ArrayList<Booking> myBookings = bookingService.viewBookingsByGuest(guestId);
+        ArrayList<Booking> myBookings = bookingService.findByGuestId(guestId);
         return myBookings;
     }
 
     public void cancelBooking(int bookingId) {
-        bookingService.cancel(bookingId);
+        bookingService.cancelBooking(bookingId);
     }
 }
