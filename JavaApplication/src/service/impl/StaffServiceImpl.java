@@ -1,5 +1,6 @@
 package service.impl;
 
+import model.Hotel;
 import model.Staff;
 import service.StaffService;
 import util.DatabaseConnection;
@@ -19,24 +20,27 @@ public class StaffServiceImpl implements StaffService {
      */
     public HashMap<Staff, String> findAllWithRole(int hotelId) {
         String sql = """
-                SELECT u.*, 'ADMINISTRATOR' as role
+                SELECT u.*, s.hotel_id, s.salary, s.hire_date, 'ADMINISTRATOR' as role
                 FROM users u
                 JOIN administrator_staff a ON u.user_id = a.user_id
-                WHERE a.hotel_id = ?
+                JOIN staff s ON u.user_id = s.user_id
+                WHERE s.hotel_id = ?
 
                 UNION
 
-                SELECT u.*, 'RECEPTIONIST' as role
+                SELECT u.*, s.hotel_id, s.salary, s.hire_date, 'RECEPTIONIST' as role
                 FROM users u
                 JOIN receptionist_staff r ON u.user_id = r.user_id
-                WHERE r.hotel_id = ?
+                JOIN staff s ON u.user_id = s.user_id
+                WHERE s.hotel_id = ?
 
                 UNION
 
-                SELECT u.*, 'HOUSEKEEPING' as role
+                SELECT u.*, s.hotel_id, s.salary, s.hire_date, 'HOUSEKEEPING' as role
                 FROM users u
                 JOIN housekeeping_staff h ON u.user_id = h.user_id
-                WHERE h.hotel_id = ?;
+                JOIN staff s ON u.user_id = s.user_id
+                WHERE s.hotel_id = ?;
                 """;
 
         HashMap<Staff, String> users = new HashMap<>();
@@ -54,6 +58,12 @@ public class StaffServiceImpl implements StaffService {
                 staff.setPhone(rs.getString("phone"));
                 staff.setCreatedAt(rs.getTimestamp("created_at"));
                 staff.setSalary(rs.getBigDecimal("salary"));
+                staff.setHireDate(rs.getDate("hire_date"));
+                
+                Hotel hotel = new Hotel();
+                hotel.setHotelId(rs.getInt("hotel_id"));
+                staff.setHotel(hotel);
+                
                 users.put(staff, rs.getString("role"));
             }
         } catch (SQLException e) {
