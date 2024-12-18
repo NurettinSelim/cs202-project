@@ -33,7 +33,11 @@ public class RoomServiceImpl implements RoomService {
     @Override
     public List<Room> findByHotel(Hotel hotel) {
         String sql = """
-                SELECT * FROM rooms WHERE hotel_id = ?;
+                SELECT r.*, rt.*, rs.status_name
+                FROM rooms r
+                JOIN room_types rt ON r.type_id = rt.type_id
+                JOIN room_statuses rs ON r.status_id = rs.status_id
+                WHERE r.hotel_id = ?;
                 """;
         ArrayList<Room> rooms = new ArrayList<>();
         try (Connection conn = DatabaseConnection.getConnection();
@@ -43,6 +47,22 @@ public class RoomServiceImpl implements RoomService {
             while (rs.next()) {
                 Room room = new Room();
                 room.setRoomNumber(rs.getString("room_number"));
+                
+                // Set room type
+                RoomType roomType = new RoomType();
+                roomType.setTypeId(rs.getInt("type_id"));
+                roomType.setTypeName(rs.getString("type_name"));
+                roomType.setBasePrice(rs.getBigDecimal("base_price"));
+                roomType.setCapacity(rs.getInt("capacity"));
+                roomType.setBedCount(rs.getInt("bed_count"));
+                room.setRoomType(roomType);
+                
+                // Set room status
+                RoomStatus status = new RoomStatus();
+                status.setStatusId(rs.getInt("status_id"));
+                status.setStatusName(rs.getString("status_name"));
+                room.setStatus(status);
+                
                 rooms.add(room);
             }
         } catch (SQLException e) {
