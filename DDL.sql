@@ -4,21 +4,34 @@ DROP DATABASE IF EXISTS hotel_management;
 CREATE DATABASE hotel_management;
 USE hotel_management;
 
+-- address table
+CREATE TABLE addresses
+(
+    address_id  INT AUTO_INCREMENT PRIMARY KEY,
+    street      VARCHAR(100) NOT NULL,
+    city        VARCHAR(50)  NOT NULL,
+    state       VARCHAR(50)  NOT NULL,
+    country     VARCHAR(50)  NOT NULL,
+    postal_code VARCHAR(20)  NOT NULL,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- hotels table
 CREATE TABLE hotels
 (
     hotel_id   INT AUTO_INCREMENT PRIMARY KEY,
     hotel_name VARCHAR(100) NOT NULL,
-    address    TEXT         NOT NULL,
-    phone      VARCHAR(20)  NOT NULL CHECK (phone REGEXP '^[0-9+][0-9-+]{9,19}$')
+    address_id INT          NOT NULL,
+    phone      VARCHAR(20)  NOT NULL CHECK (phone REGEXP '^[0-9+][0-9-+]{9,19}$'),
+    FOREIGN KEY (address_id) REFERENCES addresses (address_id)
 );
 
 -- users table
 CREATE TABLE users
 (
     user_id    INT AUTO_INCREMENT PRIMARY KEY,
-    first_name VARCHAR(50)  NOT NULL,
-    last_name  VARCHAR(50)  NOT NULL,
+    first_name VARCHAR(50) NOT NULL,
+    last_name  VARCHAR(50) NOT NULL,
     phone      VARCHAR(20) CHECK (phone IS NULL OR phone REGEXP '^[0-9+][0-9-+]{9,19}$'),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

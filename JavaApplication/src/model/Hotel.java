@@ -3,7 +3,7 @@ package model;
 public class Hotel {
     private int hotelId;
     private String hotelName;
-    private String address;
+    private Address address;
     private String phone;
 
     // Constructors
@@ -13,7 +13,7 @@ public class Hotel {
         this.hotelId = hotelId;
     }
 
-    public Hotel(int hotelId, String hotelName, String address, String phone) {
+    public Hotel(int hotelId, String hotelName, Address address, String phone) {
         this.hotelId = hotelId;
         this.hotelName = hotelName;
         this.address = address;
@@ -37,11 +37,11 @@ public class Hotel {
         this.hotelName = hotelName;
     }
 
-    public String getAddress() {
+    public Address getAddress() {
         return address;
     }
 
-    public void setAddress(String address) {
+    public void setAddress(Address address) {
         this.address = address;
     }
 
@@ -58,7 +58,7 @@ public class Hotel {
         return "Hotel{" +
                 "hotelId=" + hotelId +
                 ", hotelName='" + hotelName + '\'' +
-                ", address='" + address + '\'' +
+                ", address=" + address +
                 ", phone='" + phone + '\'' +
                 '}';
     }
