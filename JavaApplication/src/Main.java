@@ -79,7 +79,6 @@ public final class Main {
         try {
             User currentUser = userService.getCurrentUser();
             String userRole = userService.getCurrentRole();
-            
             mainFrame.dispose();
             JFrame roleFrame = new JFrame("Hotel Management System - " + userRole);
             roleFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

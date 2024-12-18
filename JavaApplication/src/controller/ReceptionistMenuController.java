@@ -21,6 +21,7 @@ public class ReceptionistMenuController extends BaseControlller {
     private final RoomService roomService;
     private final PaymentService paymentService;
     private final HousekeepingScheduleService housekeepingService;
+    private final StaffService staffService;
 
     public ReceptionistMenuController() {
         this.bookingService = new BookingServiceImpl();
@@ -28,6 +29,7 @@ public class ReceptionistMenuController extends BaseControlller {
         this.roomService = new RoomServiceImpl();
         this.paymentService = new PaymentServiceImpl();
         this.housekeepingService = new HousekeepingScheduleServiceImpl();
+        this.staffService = new StaffServiceImpl();
     }
 
     public List<Room> getAvailableRooms(String checkInDate, String checkOutDate) throws SQLException {
@@ -143,8 +145,7 @@ public class ReceptionistMenuController extends BaseControlller {
         int hotelId = userService.getCurrentHotelId();
         Hotel hotel = new Hotel();
         hotel.setHotelId(hotelId);
-        return new ArrayList<>();
-        // return staffService.findAvailableHousekeepers(hotelId, Date.valueOf(date));
+        return staffService.findAvailableHousekeepers(hotel, date);
     }
 
     public List<HousekeepingSchedule> viewHousekeepingRecords() throws SQLException {

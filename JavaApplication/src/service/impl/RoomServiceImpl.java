@@ -90,9 +90,13 @@ public class RoomServiceImpl implements RoomService {
         String sql = """
                 SELECT
                     r.room_number,
+                    r.hotel_id,
+                    r.status_id,
+                    rs.status_name,
                     rt.*
                 FROM rooms r
                 JOIN room_types rt ON r.type_id = rt.type_id
+                JOIN room_statuses rs ON r.status_id = rs.status_id
                 WHERE NOT EXISTS (
                     SELECT 1
                     FROM bookings b
@@ -112,6 +116,13 @@ public class RoomServiceImpl implements RoomService {
             while (rs.next()) {
                 Room room = new Room();
                 room.setRoomNumber(rs.getString("room_number"));
+                
+                // Set hotel
+                Hotel hotel = new Hotel();
+                hotel.setHotelId(rs.getInt("hotel_id"));
+                room.setHotel(hotel);
+                
+                // Set room type
                 room.setRoomType(new RoomType(
                         rs.getInt("type_id"),
                         null,
@@ -119,6 +130,13 @@ public class RoomServiceImpl implements RoomService {
                         rs.getBigDecimal("base_price"),
                         rs.getInt("capacity"),
                         rs.getInt("bed_count")));
+                
+                // Set room status
+                RoomStatus status = new RoomStatus();
+                status.setStatusId(rs.getInt("status_id"));
+                status.setStatusName(rs.getString("status_name"));
+                room.setStatus(status);
+                
                 rooms.add(room);
             }
         } catch (SQLException e) {

@@ -28,7 +28,8 @@ public class HousekeepingScheduleServiceImpl implements HousekeepingScheduleServ
                 schedule.setRoom(new Room(null, rs.getString("room_number"), null, null));
                 schedule.setScheduledDate(rs.getDate("scheduled_date"));
                 schedule.setStatus(new RoomStatus(rs.getInt("status_id")));
-                schedule.setStaff(new HousekeepingStaff(rs.getInt("staff_id"), null, null, null, null, null, null, null));
+                schedule.setStaff(
+                        new HousekeepingStaff(rs.getInt("staff_id"), null, null, null, null, null, null, null));
                 schedules.add(schedule);
             }
         } catch (SQLException e) {
@@ -54,7 +55,8 @@ public class HousekeepingScheduleServiceImpl implements HousekeepingScheduleServ
                 schedule.setRoom(new Room(null, rs.getString("room_number"), null, null));
                 schedule.setScheduledDate(rs.getDate("scheduled_date"));
                 schedule.setStatus(new RoomStatus(rs.getInt("status_id")));
-                schedule.setStaff(new HousekeepingStaff(rs.getInt("staff_id"), null, null, null, null, null, null, null));
+                schedule.setStaff(
+                        new HousekeepingStaff(rs.getInt("staff_id"), null, null, null, null, null, null, null));
                 schedules.add(schedule);
             }
         } catch (SQLException e) {
@@ -64,16 +66,14 @@ public class HousekeepingScheduleServiceImpl implements HousekeepingScheduleServ
     }
 
     @Override
-    public ArrayList<HousekeepingSchedule> findCompletedSchedules(Hotel hotel, Date startDate, Date endDate) {
+    public ArrayList<HousekeepingSchedule> findCompletedSchedules(Hotel hotel) {
         ArrayList<HousekeepingSchedule> schedules = new ArrayList<>();
-        String query = "SELECT * FROM housekeeping_schedule WHERE hotel_id = ? AND status_id = 2 AND scheduled_date BETWEEN ? AND ?";
+        String query = "SELECT * FROM housekeeping_schedule WHERE hotel_id = ? AND status_id = 2";
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query)) {
 
             stmt.setInt(1, hotel.getHotelId());
-            stmt.setDate(2, startDate);
-            stmt.setDate(3, endDate);
             ResultSet rs = stmt.executeQuery();
 
             while (rs.next()) {
@@ -82,7 +82,8 @@ public class HousekeepingScheduleServiceImpl implements HousekeepingScheduleServ
                 schedule.setRoom(new Room(null, rs.getString("room_number"), null, null));
                 schedule.setScheduledDate(rs.getDate("scheduled_date"));
                 schedule.setStatus(new RoomStatus(rs.getInt("status_id")));
-                schedule.setStaff(new HousekeepingStaff(rs.getInt("staff_id"), null, null, null, null, null, null, null));
+                schedule.setStaff(
+                        new HousekeepingStaff(rs.getInt("staff_id"), null, null, null, null, null, null, null));
                 schedules.add(schedule);
             }
         } catch (SQLException e) {
@@ -123,7 +124,8 @@ public class HousekeepingScheduleServiceImpl implements HousekeepingScheduleServ
                 schedule.setRoom(new Room(null, rs.getString("room_number"), null, null));
                 schedule.setScheduledDate(rs.getDate("scheduled_date"));
                 schedule.setStatus(new RoomStatus(rs.getInt("status_id")));
-                schedule.setStaff(new HousekeepingStaff(rs.getInt("staff_id"), null, null, null, null, null, null, null));
+                schedule.setStaff(
+                        new HousekeepingStaff(rs.getInt("staff_id"), null, null, null, null, null, null, null));
                 schedules.add(schedule);
             }
         } catch (SQLException e) {
@@ -155,7 +157,13 @@ public class HousekeepingScheduleServiceImpl implements HousekeepingScheduleServ
     @Override
     public ArrayList<HousekeepingSchedule> findByHotel(Hotel hotel) {
         ArrayList<HousekeepingSchedule> schedules = new ArrayList<>();
-        String query = "SELECT * FROM housekeeping_schedule WHERE hotel_id = ?";
+        String query = """
+                    SELECT hs.*,
+                    u.first_name, u.last_name
+                    FROM housekeeping_schedule hs
+                    JOIN users u ON hs.staff_id = u.user_id
+                    WHERE hs.hotel_id = ?
+                """;
 
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -169,7 +177,8 @@ public class HousekeepingScheduleServiceImpl implements HousekeepingScheduleServ
                 schedule.setRoom(new Room(null, rs.getString("room_number"), null, null));
                 schedule.setScheduledDate(rs.getDate("scheduled_date"));
                 schedule.setStatus(new RoomStatus(rs.getInt("status_id")));
-                schedule.setStaff(new HousekeepingStaff(rs.getInt("staff_id"), null, null, null, null, null, null, null));
+                schedule.setStaff(
+                        new HousekeepingStaff(rs.getInt("staff_id"), rs.getString("first_name"), rs.getString("last_name"), null, null, null, null, null));
                 schedules.add(schedule);
             }
         } catch (SQLException e) {

@@ -9,7 +9,7 @@ public interface HousekeepingScheduleService {
 
     ArrayList<HousekeepingSchedule> findPendingSchedules(Hotel hotel);
 
-    ArrayList<HousekeepingSchedule> findCompletedSchedules(Hotel hotel, Date startDate, Date endDate);
+    ArrayList<HousekeepingSchedule> findCompletedSchedules(Hotel hotel);
 
     void updateStatus(int scheduleId, RoomStatus status);
 

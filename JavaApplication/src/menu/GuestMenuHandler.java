@@ -106,11 +106,11 @@ public class GuestMenuHandler {
                     } else {
                         for (Room room : availableRoomsList) {
                             model.addRow(new Object[] {
-                                false,
-                                room.getRoomNumber(),
-                                room.getRoomType().getTypeName(),
-                                room.getRoomType().getCapacity(),
-                                room.getRoomType().getBasePrice()
+                                    false,
+                                    room.getRoomNumber(),
+                                    room.getRoomType().getTypeName(),
+                                    room.getRoomType().getCapacity(),
+                                    room.getRoomType().getBasePrice()
                             });
                         }
                         scrollPane.setVisible(true);
@@ -238,11 +238,11 @@ public class GuestMenuHandler {
                     } else {
                         for (Room room : availableRooms) {
                             model.addRow(new Object[] {
-                                room.getRoomNumber(),
-                                room.getRoomType().getTypeName(),
-                                room.getRoomType().getCapacity(),
-                                room.getRoomType().getBasePrice(),
-                                room.getStatus().getStatusName()
+                                    room.getRoomNumber(),
+                                    room.getRoomType().getTypeName(),
+                                    room.getRoomType().getCapacity(),
+                                    room.getRoomType().getBasePrice(),
+                                    room.getStatus().getStatusName()
                             });
                         }
                         scrollPane.setVisible(true);
@@ -277,8 +277,7 @@ public class GuestMenuHandler {
         try {
             JDialog dialog = UIComponents.createStyledDialog(parentFrame, "My Bookings", UIComponents.DIALOG_SIZE);
             JPanel panel = UIComponents.createMainPanel();
-            String[] columnNames = { "Booking ID", "Check-in Date", "Check-out Date", "Status",
-                    "Total Guests", "Created At", "Confirmed By" };
+            String[] columnNames = { "Booking ID", "Check-in Date", "Check-out Date", "Status", "Total Guests" };
             DefaultTableModel model = new DefaultTableModel(columnNames, 0);
             JTable bookingsTable = UIComponents.createTable(model, false);
             JScrollPane scrollPane = new JScrollPane(bookingsTable);
@@ -297,8 +296,6 @@ public class GuestMenuHandler {
                                 booking.getCheckOutDate(),
                                 booking.getStatus().getStatusName(),
                                 booking.getTotalGuests(),
-                                booking.getCreatedAt(),
-                                booking.getConfirmedBy(),
                         });
                     }
                 }
@@ -353,7 +350,7 @@ public class GuestMenuHandler {
 
             // Button panel
             JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-            
+
             JButton cancelBookingButton = UIComponents.createStyledButton("Cancel Selected Booking");
             cancelBookingButton.addActionListener(e -> {
                 int selectedRow = bookingsTable.getSelectedRow();

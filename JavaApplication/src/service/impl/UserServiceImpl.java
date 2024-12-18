@@ -60,6 +60,9 @@ public class UserServiceImpl implements UserService {
     }
 
     public String getCurrentRole() {
+        if (currentRole == null) {
+            currentRole = getRole(currentUser.getUserId());
+        }
         return currentRole;
     }
 
@@ -78,7 +81,7 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    private void getRole(int userId) {
+    private String getRole(int userId) {
         String sql = """
                 SELECT u.*, 'ADMINISTRATOR' as role
                 FROM users u
@@ -97,13 +100,21 @@ public class UserServiceImpl implements UserService {
                 SELECT u.*, 'HOUSEKEEPING' as role
                 FROM users u
                 JOIN housekeeping_staff h ON u.user_id = h.user_id
-                WHERE u.user_id = ?;
+                WHERE u.user_id = ?
+
+                UNION
+
+                SELECT u.*, 'GUEST' as role
+                FROM users u
+                JOIN guests g ON u.user_id = g.user_id
+                WHERE u.user_id = ?
                 """;
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, userId);
             stmt.setInt(2, userId);
             stmt.setInt(3, userId);
+            stmt.setInt(4, userId);
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 currentRole = rs.getString("role");
@@ -111,6 +122,7 @@ public class UserServiceImpl implements UserService {
         } catch (SQLException e) {
             throw new RuntimeException("Error getting role", e);
         }
+        return currentRole;
     }
 
     public int getCurrentHotelId() {
