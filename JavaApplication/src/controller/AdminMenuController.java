@@ -142,7 +142,7 @@ public class AdminMenuController extends BaseControlller {
         return hotelService.getRevenue(hotelId);
     }
 
-    public List<Booking> viewBookingRecords() throws SQLException {
+    public ArrayList<Booking> viewBookingRecords() throws SQLException {
         return bookingService.findAllWithGuest();
     }
 
@@ -150,10 +150,9 @@ public class AdminMenuController extends BaseControlller {
         return housekeepingService.findAll();
     }
 
-    public List<BookingService.RoomTypeStats> viewMostBookedRoomTypes() throws SQLException {
+    public List<BookingService.RoomTypeStats> viewMostBookedRoomTypes(String checkInDate, String checkOutDate) throws SQLException {
         int hotelId = getCurrentUserHotelId();
-        // TODO: get check in date and check out date from user
-        return bookingService.getMostBookedRoomTypes(hotelId, null, null);
+        return bookingService.getMostBookedRoomTypes(hotelId, checkInDate, checkOutDate);
     }
 
     public HashMap<Staff, String> viewAllEmployees() throws SQLException {
