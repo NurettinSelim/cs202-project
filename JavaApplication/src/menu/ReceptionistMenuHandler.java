@@ -3,7 +3,6 @@ package menu;
 import controller.ReceptionistMenuController;
 import model.*;
 import util.UIComponents;
-import service.*;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -14,7 +13,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.math.BigDecimal;
-import java.util.Vector;
 
 public class ReceptionistMenuHandler {
     private final ReceptionistMenuController receptionistMenuController;
@@ -601,9 +599,9 @@ public class ReceptionistMenuHandler {
         checkStaffBtn.addActionListener(e -> {
             try {
                 String date = dateField.getText().trim();
-                List<Staff> availableStaff = receptionistMenuController.getAvailableHousekeepers(date);
+                List<HousekeepingStaff> availableStaff = receptionistMenuController.getAvailableHousekeepers(date);
                 staffModel.removeAllElements();
-                for (Staff staff : availableStaff) {
+                for (HousekeepingStaff staff : availableStaff) {
                     staffModel.addElement(staff);
                 }
             } catch (SQLException ex) {
